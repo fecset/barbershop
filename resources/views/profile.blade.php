@@ -31,7 +31,7 @@
 <div class="container">
     <h2>Личный кабинет</h2>
     <p>{{ auth()->user()->name }} {{ auth()->user()->last_name }}</p>
-
+    <button style="border-radius: 10px; margin-top: -10px" class="intro__button button" onclick="window.location.href='{{ route('appointments.create') }}'">Записаться</button>
     <h3>Ваши записи</h3>
 
     <table class="table">
