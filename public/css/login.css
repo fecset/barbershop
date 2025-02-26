@@ -346,8 +346,8 @@ body {
 }
 
 .time-slot.selected {
-    background-color: #398469; 
-    color: white; 
+    background-color: #398469;
+    color: white;
 }
 
 .selected-time {
@@ -364,8 +364,8 @@ body {
     margin-top: 5px;
 }
 .invalid-alert{
-    color: #380f0f;
-    background-color: #ff9999;
+    color: #592020;
+    background-color: rgba(255, 153, 153, 0.68);
     border: 1px solid #fc6969;
     border-radius: 10px;
     padding: 20px;

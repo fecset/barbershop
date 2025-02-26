@@ -1,161 +1,164 @@
-export function initServices() {
+export async function initServices() {
     const modal = document.getElementById('settingsModal');
     const servicesTableBody = document.getElementById('servicesTableBody');
     const addServiceModal = document.getElementById('addServiceModal');
-    let lastServiceId = 0;
 
-    function getServicesFromLocalStorage() {
-        const services = localStorage.getItem('services');
-        return services ? JSON.parse(services) : [];
-    }
+    async function fetchServices() {
+        try {
+            const response = await fetch('/api/services');
+            const data = await response.json();
 
-    function saveServicesToLocalStorage(services) {
-        localStorage.setItem('services', JSON.stringify(services));
-    }
-
-    function getNextServiceId() {
-        const services = getServicesFromLocalStorage();
-        return services.length > 0 ? Math.max(...services.map(service => Number(service.услуга_id))) + 1 : 1;
-    }
-    
-    async function loadServicesFromJson() {
-        const response = await fetch('db/barbershop_db.json');
-        if (!response.ok) {
-            throw new Error('Ошибка загрузки данных');
+            // Преобразуем данные с кириллическими ключами в английские
+            return data.map(service => ({
+                id: service.услуга_id,
+                name: service.название,
+                price: service.цена,
+                specialization: service.специализация
+            }));
+        } catch (error) {
+            console.error('Ошибка при загрузке данных об услугах:', error);
+            return [];
         }
-        const data = await response.json();
-        return data.find(table => table.name === "Услуги").data;
     }
 
-    function populateServices() {
-        const services = JSON.parse(localStorage.getItem('services')) || [];
-        const servicesTableBody = document.getElementById('servicesTableBody');
-    
-        servicesTableBody.innerHTML = ''; 
-    
+
+    async function populateServices() {
+        const services = await fetchServices();
+
+        const servicesContainer = document.querySelector('#servicesTableBody');
+        if (!servicesContainer) {
+            console.error('Element #servicesTableBody not found!');
+            return;
+        }
+
+        servicesContainer.innerHTML = ''; // Очищаем контейнер перед добавлением новых данных
+
         services.forEach(service => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="service__id">${service.услуга_id}</td>
-                <td class="service__name">${service.название}</td>
-                <td class="service__specialization">${service.специализация}</td> <!-- Отображаем специализацию -->
-                <td class="service__price">${service.цена} ₽</td>
+            const serviceRow = document.createElement('tr'); // Создаем строку для таблицы
+            serviceRow.innerHTML = `
+                <td class="service__id">${service.id}</td>
+                <td class="service__name">${service.name}</td>
+                <td class="service__specialization">${service.specialization}</td>
+                <td class="service__price">${service.price} ₽</td>
                 <td class="service__actions">
-                    <button class="service__button service__button--settings" data-id="${service.услуга_id}">Настройки</button>
-                    <button class="service__button service__button--delete" data-id="${service.услуга_id}">
-                        <img src="img/delete-icon.svg" alt="Delete">
-                    </button>
+                    <button class="service__button service__button--settings" data-id="${service.id}">Настройки</button>
+                    <button class="service__button service__button--delete" data-id="${service.id}"><img src="img/delete-icon.svg" alt="Delete"></button>
                 </td>
             `;
-            servicesTableBody.appendChild(row);
+            servicesContainer.appendChild(serviceRow); // Добавляем строку в таблицу
         });
-    
-        attachEventHandlers(); 
-    }
-    
-    
 
-    async function initializeServices() {
-        let services = getServicesFromLocalStorage();
-        if (services.length === 0) {
-            
-            services = await loadServicesFromJson();
-            saveServicesToLocalStorage(services); 
-        }
-        populateServices(); 
+        attachEventHandlers();
     }
 
     function attachEventHandlers() {
         document.querySelectorAll('.service__button--delete').forEach(button => {
+            button.addEventListener('click', async function() {
+                const row = this.closest('tr');
+                const serviceId = row.querySelector('.service__id').textContent;
+
+                try {
+                    // Отправка запроса на сервер для удаления услуги
+                    const response = await fetch(`/api/services/${serviceId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+                    if (response.ok) {
+                        // Услуга успешно удалена, удаляем строку из таблицы
+                        row.remove();
+                    } else {
+                        // Обработка ошибки
+                        console.error('Ошибка при удалении услуги:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Ошибка при отправке запроса:', error);
+                }
+            });
+        });
+
+        document.querySelectorAll('.service__button--settings').forEach(button => {
             button.addEventListener('click', function() {
                 const row = this.closest('tr');
                 const serviceId = row.querySelector('.service__id').textContent;
-                row.remove();
-
-                
-                let services = getServicesFromLocalStorage();
-                services = services.filter(service => service.услуга_id !== serviceId);
-                saveServicesToLocalStorage(services);
-            });
-        });
-        
-        document.querySelectorAll('.service__button--settings').forEach(button => {
-            button.addEventListener('click', function() {
-                const row = this.closest('tr'); 
-                const serviceId = row.querySelector('.service__id').textContent;
                 const serviceName = row.querySelector('.service__name').textContent;
-                const servicePrice = row.querySelector('.service__price').textContent;
+                const servicePrice = row.querySelector('.service__price').textContent.replace(' ₽', '');
+                const serviceSpecialization = row.querySelector('.service__specialization').textContent;
 
-                document.getElementById('serviceId').textContent = serviceId; 
-                document.getElementById('serviceName').textContent = serviceName; 
-                document.getElementById('priceValue').textContent = servicePrice.replace(' ₽', '');
-                modal.style.display = 'flex'; 
+                document.getElementById('serviceId').textContent = serviceId;
+                document.getElementById('serviceName').textContent = serviceName;
+                document.getElementById('priceValue').textContent = servicePrice;
+                document.getElementById('serviceSpecialization').value = serviceSpecialization;
+
+                modal.style.display = 'flex';
             });
         });
+        document.getElementById('saveSettings').addEventListener('click', async function() {
+            const serviceId = document.getElementById('serviceId').textContent;
+            const serviceName = document.getElementById('serviceName').textContent;
+            const priceValue = document.getElementById('priceValue').textContent;
+            const serviceSpecialization = document.getElementById('serviceSpecialization').value;
+
+            const updatedService = {
+                название: serviceName,
+                цена: priceValue,
+                специализация: serviceSpecialization
+            };
+
+            try {
+                const response = await fetch(`/api/services/${serviceId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedService),
+                });
+
+                if (response.ok) {
+                    populateServices(); // Обновляем список услуг
+                    modal.style.display = 'none'; // Закрываем модальное окно
+                } else {
+                    console.error('Ошибка при сохранении изменений:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Ошибка при отправке данных на сервер:', error);
+            }
+        });
+
 
         document.querySelectorAll('.edit-icon').forEach(icon => {
             icon.addEventListener('click', function() {
-
                 const fieldToEdit = this.closest('td').previousElementSibling.querySelector('span');
-        
+
                 if (fieldToEdit) {
-                    fieldToEdit.contentEditable = 'true'; 
-                    fieldToEdit.focus(); 
+                    fieldToEdit.contentEditable = 'true';
+                    fieldToEdit.focus();
 
                     fieldToEdit.addEventListener('keydown', function(event) {
                         if (event.key === 'Enter') {
                             event.preventDefault();
-                            this.contentEditable = 'false'; 
+                            this.contentEditable = 'false';
                         }
                     });
                 }
             });
         });
-        
     }
-    initializeServices();
+
+    populateServices();
+
+
+    document.getElementById('closeAddServiceModal').addEventListener('click', function() {
+        document.getElementById('addServiceModal').style.display = 'none';
+    });
 
     window.addEventListener('click', function(event) {
         if (event.target === modal) {
             modal.style.display = 'none';
         }
     });
-
-    document.getElementById('saveSettings').addEventListener('click', function() {
-        const serviceId = document.getElementById('serviceId').textContent;
-        const serviceName = document.getElementById('serviceName').textContent.trim();
-        const servicePrice = document.getElementById('priceValue').textContent.trim();
-        const serviceSpecialization = document.getElementById('serviceSpecialization').value;
-    
-        if (!serviceName || !servicePrice) {
-            alert('Пожалуйста, заполните все поля!');
-            return;
-        }
-    
-        
-        let services = JSON.parse(localStorage.getItem('services')) || [];
-        const updatedService = {
-            услуга_id: serviceId,
-            название: serviceName,
-            цена: servicePrice,
-            специализация: serviceSpecialization
-        };
-    
-        
-        services = services.map(service =>
-            service.услуга_id === serviceId ? updatedService : service
-        );
-    
-        localStorage.setItem('services', JSON.stringify(services));
-    
-        
-        populateServices();
-    
-        
-        document.getElementById('settingsModal').style.display = 'none';
-    });
-
-    
 
     const priceValueField = document.getElementById('priceValue');
     const serviceNameField = document.getElementById('serviceName');
@@ -168,7 +171,7 @@ export function initServices() {
         if (event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
             return;
         }
-        
+
         if (!isNumberKey(event) || this.textContent.length >= maxLength) {
             event.preventDefault();
         }
@@ -190,20 +193,20 @@ export function initServices() {
 
     function getMaxLength(id) {
         switch (id) {
-            case 'serviceName': return 30; 
-            case 'priceValue': return 10; 
-            default: return Infinity; 
+            case 'serviceName': return 30;
+            case 'priceValue': return 10;
+            default: return Infinity;
         }
     }
 
     function isNumberKey(event) {
         const charCode = event.which || event.keyCode;
         return (
-            (charCode >= 48 && charCode <= 57) || 
+            (charCode >= 48 && charCode <= 57) ||
             (charCode >= 96 && charCode <= 105) ||
-            charCode === 8 || 
-            charCode === 46 || 
-            charCode === 9 || 
+            charCode === 8 ||
+            charCode === 46 ||
+            charCode === 9 ||
             (charCode >= 37 && charCode <= 40)
         );
     }
@@ -211,47 +214,45 @@ export function initServices() {
     function isAlphabeticKey(event) {
         const charCode = event.which || event.keyCode;
         return (
-            (charCode >= 65 && charCode <= 90) || 
-            (charCode >= 97 && charCode <= 122) || 
-            charCode === 32 || 
-            charCode === 8 || 
-            charCode === 46 || 
-            charCode === 9 || 
-            (charCode >= 37 && charCode <= 40) 
+            (charCode >= 65 && charCode <= 90) ||
+            (charCode >= 97 && charCode <= 122) ||
+            charCode === 32 ||
+            charCode === 8 ||
+            charCode === 46 ||
+            charCode === 9 ||
+            (charCode >= 37 && charCode <= 40)
         );
     }
 
-    
+
      document.getElementById('addServiceButton').addEventListener('click', function() {
-        document.getElementById('newServiceName').value = ''; 
+        document.getElementById('newServiceName').value = '';
         document.getElementById('newServicePrice').value = '';
         document.getElementById('addServiceModal').style.display = 'flex';
     });
 
     document.getElementById('closeAddServiceModal').addEventListener('click', function() {
-        document.getElementById('addServiceModal').style.display = 'none'; 
+        document.getElementById('addServiceModal').style.display = 'none';
     });
-    
+
     window.addEventListener('click', function(event) {
-        if (event.target === document.getElementById('addServiceModal')) {  
-            addServiceModal.style.display = 'none'; 
+        if (event.target === document.getElementById('addServiceModal')) {
+            addServiceModal.style.display = 'none';
         }
     });
-    
-    document.getElementById('saveNewService').addEventListener('click', function() {
+
+    document.getElementById('saveNewService').addEventListener('click', async function() {
         const newServiceName = document.getElementById('newServiceName').value.trim();
         const newServicePrice = document.getElementById('newServicePrice').value.trim();
-        const serviceSpecialization = document.getElementById('serviceSpec').value; 
+        const serviceSpecialization = document.getElementById('serviceSpec').value;
         const priceError = document.getElementById('priceError');
         const nameError = document.getElementById('nameError');
-        const specializationError = document.getElementById('specializationError'); 
-    
-        
+        const specializationError = document.getElementById('specializationError');
+
         priceError.textContent = '';
         nameError.textContent = '';
         specializationError.textContent = '';
-    
-        
+
         if (!newServiceName) {
             nameError.textContent = 'Введите название услуги.';
             return;
@@ -259,60 +260,49 @@ export function initServices() {
             nameError.textContent = 'Название услуги может содержать только буквы.';
             return;
         }
-    
-        
+
         if (!newServicePrice || isNaN(newServicePrice) || newServicePrice <= 0) {
             priceError.textContent = 'Введите корректную цену.';
             return;
         }
-    
-        
-        if (serviceSpecialization === "") { 
+
+        if (serviceSpecialization === "") {
             specializationError.textContent = 'Выберите специализацию.';
             return;
         }
-    
-        const newServiceId = getNextServiceId();
+
+        // Создаем объект новой услуги без ID
         const newService = {
-            услуга_id: String(newServiceId),
             название: newServiceName,
             цена: newServicePrice,
-            специализация: serviceSpecialization 
+            специализация: serviceSpecialization
         };
-    
-        let services = getServicesFromLocalStorage();
-        services.push(newService);
-        saveServicesToLocalStorage(services);
-    
-        
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="service__id">${newService.услуга_id}</td>
-            <td class="service__name">${newService.название}</td>
-            <td class="service__specialization">${newService.специализация}</td> <!-- Отображаем специализацию -->
-            <td class="service__price">${newService.цена} ₽</td>
-            <td class="service__actions">
-                <button class="service__button service__button--settings">Настройки</button>
-                <button class="service__button service__button--delete">
-                    <img src="img/delete-icon.svg" alt="Delete">
-                </button>
-            </td>
-        `;
-        
-        servicesTableBody.appendChild(row);
-    
-        
+
+        // Отправляем новую услугу на сервер
+        try {
+            const response = await fetch('/api/services', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newService)
+            });
+
+            if (response.ok) {
+                populateServices(); // Обновляем список услуг
+            } else {
+                console.error('Ошибка при добавлении услуги:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Ошибка при отправке данных на сервер:', error);
+        }
+
+        // Очистить форму и скрыть модальное окно
         document.getElementById('newServiceName').value = '';
         document.getElementById('newServicePrice').value = '';
-        document.getElementById('serviceSpec').value = ''; 
-        addServiceModal.style.display = 'none'; 
-    
-        lastServiceId = newServiceId;
-    
-        attachEventHandlers(); 
+        document.getElementById('serviceSpec').value = '';
+        document.getElementById('addServiceModal').style.display = 'none';
     });
-    
-    
 
     document.getElementById('newServiceName').addEventListener('input', function() {
         const nameError = document.getElementById('nameError');
@@ -328,11 +318,10 @@ export function initServices() {
     document.getElementById('newServicePrice').addEventListener('input', function() {
         const maxValue = 1000000;
         const priceError = document.getElementById('priceError');
-        
+
         if (this.value > maxValue) {
             priceError.textContent = `Цена не может превышать ${maxValue} ₽.`;
-            this.value = maxValue; 
-            console.log(this.value);
+            this.value = maxValue;
         } else {
             priceError.textContent = '';
         }
@@ -342,10 +331,10 @@ export function initServices() {
             this.value = '';
         }
     });
-    
+
 
     document.getElementById('closeSettingsModal').addEventListener('click', function() {
-        document.getElementById('settingsModal').style.display = 'none'; 
+        document.getElementById('settingsModal').style.display = 'none';
     });
 
     window.addEventListener('click', function(event) {
@@ -353,6 +342,6 @@ export function initServices() {
             modal.style.display = 'none';
         }
     });
-    
+
     populateServices();
 }

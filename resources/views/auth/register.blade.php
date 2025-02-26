@@ -16,7 +16,8 @@
     <div class="header__container ">
         <div class="header__logo">
             <img src="{{ asset('img/Logo.svg') }}" alt="Иконка ножниц" class="header__icon">
-            <h1 class="header__title">Бородатый Гуру</h1>
+            <a class="header__title" href="{{ route('home') }}" style="text-decoration: none; font-weight: bold">Бородатый Гуру</a>
+
         </div>
 
         <nav class="header__nav">

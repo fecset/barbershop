@@ -37,15 +37,8 @@ export function initTabSwitching() {
                 activeLink = document.querySelector('[data-icon="records"]');
                 break;
             case 'admin':
-
-                if (adminSection && role === 'Superadmin') {
-                    adminSection.style.display = 'block';
-                    activeLink = document.querySelector('[data-icon="admin"]');
-                } else {
-
-                    mainContentSection.style.display = 'flex';
-                    activeLink = document.querySelector('[data-icon="home"]');
-                }
+                adminSection.style.display = 'block';
+                activeLink = document.querySelector('[data-icon="admin"]');
                 break;
             default:
                 mainContentSection.style.display = 'flex';

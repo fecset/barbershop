@@ -2,21 +2,17 @@ import { initTabSwitching } from './modules/tabs.js';
 import { initMasters } from './modules/masters.js';
 import { initServices } from './modules/services.js';
 import { initRecords } from './modules/records.js';
+import { initAdmins } from './modules/admin.js';
 
 export const state = {
-    selectedDate: new Date().toISOString().split('T')[0], 
+    selectedDate: new Date().toISOString().split('T')[0],
 };
-
-if (localStorage.getItem('role') === 'Superadmin') {
-    import('./modules/admin.js').then(module => {
-        module.initAdmin();
-    });
-}
 
 initTabSwitching();
 initMasters();
 initServices();
 initRecords();
+initAdmins();
 
 const icons = {
     home: {
@@ -105,133 +101,133 @@ document.addEventListener('click', function (event) {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    
-    const masters = JSON.parse(localStorage.getItem('masters')) || [];
-    
-    const mastersList = document.querySelector('.masters-list');
-    
-    mastersList.innerHTML = '';
 
-    masters.forEach(master => {
-        const listItem = document.createElement('li');
-        listItem.textContent = `${master.имя} - ${master.график_работы}`;
-        
-        
-        listItem.addEventListener('click', () => {
-            openRecordModal(master.имя);
+    // Загружаем данные о мастерах с сервера
+    fetch('/api/masters')
+        .then(response => response.json())
+        .then(masters => {
+            const mastersList = document.querySelector('.masters-list');
+            mastersList.innerHTML = '';
+
+            masters.forEach(master => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${master.имя} - ${master.график_работы}`;
+
+                listItem.addEventListener('click', () => {
+                    openRecordModal(master.имя);
+                });
+
+                mastersList.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки данных:', error);
         });
-
-        mastersList.appendChild(listItem);
-    });
 });
 
-function openRecordModal(masterName) {
+async function openRecordModal(masterName) {
     const recordModal = document.getElementById('recordModal');
-    
-    
+
     const masterNameElement = document.getElementById('mastersName');
     if (masterNameElement) {
         masterNameElement.textContent = masterName;
     }
 
-    
-    const records = getRecordsForMaster(masterName);
+    try {
+        const recordsData = await getRecordsForMaster(masterName);
+        const appointments = recordsData.appointments || [];
+        const clients = recordsData.clients || [];
+        const services = recordsData.services || [];
+        const masters = recordsData.masters || [];
 
-    
-    const recordList = document.getElementById('recordList');
-    recordList.innerHTML = ''; 
-
-    if (records.length === 0) {
-        
-        const noRecordsMessage = document.createElement('li');
-        noRecordsMessage.textContent = 'Записи отсутствуют';
-        noRecordsMessage.style.color = '#999'; 
-        noRecordsMessage.style.fontStyle = 'italic'; 
-        recordList.appendChild(noRecordsMessage);
-    } else {
-        
-        records.forEach((record, index) => {
-            const recordItem = document.createElement('li');
-
-            
-            const recordNumber = document.createElement('span');
-            recordNumber.className = 'record-number';
-            recordNumber.textContent = index + 1; 
-
-            
-            const recordText = document.createElement('span');
-            recordText.innerHTML = `<strong>Дата и время:</strong> ${record.дата_время}, <strong>Клиент:</strong> ${record.клиент_имя}, <strong>Услуга:</strong> ${record.услуга_название}`;
-
-            
-            recordItem.appendChild(recordNumber);
-            recordItem.appendChild(recordText);
-            
-            recordList.appendChild(recordItem);
-        });
-    }
-
-    
-    recordModal.style.display = 'block';
-
-    
-    document.querySelector('.close-button').onclick = function() {
-        recordModal.style.display = 'none';
-    };
-
-    
-    window.onclick = function(event) {
-        if (event.target === recordModal) {
-            recordModal.style.display = 'none';
+        // Найти ID выбранного мастера
+        const master = masters.find(m => m.имя === masterName);
+        if (!master) {
+            console.error('Мастер не найден:', masterName);
+            return;
         }
-    };
+        const masterId = master.мастер_id;
+
+        // Фильтруем записи только для выбранного мастера
+        const records = appointments.filter(record => record.мастер_id === masterId);
+
+        const recordList = document.getElementById('recordList');
+        recordList.innerHTML = '';
+
+        if (records.length === 0) {
+            const noRecordsMessage = document.createElement('li');
+            noRecordsMessage.textContent = 'Записи отсутствуют';
+            noRecordsMessage.style.color = '#999';
+            noRecordsMessage.style.fontStyle = 'italic';
+            recordList.appendChild(noRecordsMessage);
+        } else {
+            records.forEach((record, index) => {
+                const recordItem = document.createElement('li');
+
+                // Найти имя клиента по его ID
+                const client = clients.find(c => c.клиент_id === record.клиент_id);
+                const clientName = client ? `${client.имя} ${client.фамилия}` : 'Неизвестно';
+
+                // Найти название услуги по её ID
+                const service = services.find(s => s.услуга_id === record.услуга_id);
+                const serviceName = service ? service.название : 'Неизвестно';
+
+                const recordNumber = document.createElement('span');
+                recordNumber.className = 'record-number';
+                recordNumber.textContent = index + 1;
+
+                const recordText = document.createElement('span');
+                recordText.innerHTML = `<strong>Дата и время:</strong> ${record.дата_время}, <strong>Клиент:</strong> ${clientName}, <strong>Услуга:</strong> ${serviceName}`;
+
+                recordItem.appendChild(recordNumber);
+                recordItem.appendChild(recordText);
+                recordList.appendChild(recordItem);
+            });
+        }
+
+        recordModal.style.display = 'block';
+
+        document.querySelector('.close-button').onclick = function() {
+            recordModal.style.display = 'none';
+        };
+
+        window.onclick = function(event) {
+            if (event.target === recordModal) {
+                recordModal.style.display = 'none';
+            }
+        };
+    } catch (error) {
+        console.error('Ошибка при получении записей:', error);
+    }
 }
+
 
 function getRecordsForMaster(masterName) {
-    const records = JSON.parse(localStorage.getItem('records')) || [];
-    
-    return records.filter(record => record.мастер_имя === masterName);
+    return fetch(`/api/appointments?master=${encodeURIComponent(masterName)}`)
+        .then(response => response.json())
+        .then(records => records || [])
+        .catch(error => {
+            console.error('Ошибка при загрузке записей:', error);
+            return [];
+        });
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
 
     const userData = JSON.parse(localStorage.getItem('currentUser'));
 
-    if (userData) {
-
-        document.querySelector('.sidebar__username').textContent = userData.name;
-        document.querySelector('.sidebar__role').textContent = userData.role;
-
-
-        document.querySelector('.header__login-text').textContent = userData.name;
-
-
-        if (userData.role === 'Superadmin') {
-            document.getElementById('adminTab').style.display = 'block';
-        }
-    } else {
-        console.error('Данные пользователя не найдены');
-    }
-
     logoutLink.addEventListener('click', function () {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('role');
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('activeTab'); 
-        window.location.href = 'auth.html'; 
+        localStorage.removeItem('activeTab');
+        window.location.href = 'auth.html';
     });
 
-    const role = localStorage.getItem('role'); 
+    const role = localStorage.getItem('role');
 
-    
-    if (role !== 'Superadmin') {
-        const adminTab = document.getElementById('adminTab');
-        if (adminTab) {
-            adminTab.style.display = 'none';
-        }
-    }
-
-    
-    const activeTab = localStorage.getItem('activeTab') || 'home'; 
+    const activeTab = localStorage.getItem('activeTab') || 'home';
     showTab(activeTab);
 
 });
@@ -239,11 +235,20 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', initScheduleTable);
 
 function initScheduleTable() {
-    const masters = JSON.parse(localStorage.getItem('masters')).filter(master => master.специализация !== 'Уборка');
-    generateScheduleHeader(masters);
-    generateScheduleBody(masters);
-    loadRecords();
+    fetch('/api/masters')
+        .then(response => response.json())
+        .then(masters => {
+            masters = masters.filter(master => master.специализация !== 'Уборка');
+            generateScheduleHeader(masters);
+            generateScheduleBody(masters);
+            loadRecords();
+        })
+        .catch(error => {
+            console.error('Ошибка при загрузке мастеров:', error);
+        });
 }
+
+
 
 
 function generateScheduleHeader(masters) {
@@ -264,7 +269,7 @@ export function generateScheduleBody(masters) {
     const interval = 30;
     const today = new Date();
     const maxDate = new Date();
-    maxDate.setDate(today.getDate() + 30); 
+    maxDate.setDate(today.getDate() + 30);
 
     for (let hour = startTime; hour < endTime; hour++) {
         for (let minute = 0; minute < 60; minute += interval) {
@@ -280,7 +285,7 @@ export function generateScheduleBody(masters) {
                 cell.classList.add('schedule-cell');
                 cell.dataset.time = timeText;
                 cell.dataset.master = master.имя;
-                cell.dataset.date = state.selectedDate; 
+                cell.dataset.date = state.selectedDate;
 
                 const cellDateTime = new Date(`${state.selectedDate}T${timeText}`);
                 if (cellDateTime < today || cellDateTime > maxDate) {
@@ -297,132 +302,139 @@ export function generateScheduleBody(masters) {
 }
 
 
-function getNextRecordId() {
-    const records = JSON.parse(localStorage.getItem('records')) || [];
-    return records.length > 0 ? Math.max(...records.map(r => parseInt(r.запись_id, 10))) + 1 : 1;
-}
-
-function getMasterIdByName(masterName) {
-    const masters = JSON.parse(localStorage.getItem('masters')) || [];
-    const master = masters.find(m => m.имя === masterName);
-    return master ? master.мастер_id : null; 
-}
-
-function getServiceIdByName(serviceName) {
-    const services = JSON.parse(localStorage.getItem('services')) || [];
-    const service = services.find(s => s.название === serviceName);
-    return service ? service.услуга_id : null; 
-}
-
-
-
-function saveRecord(master, time, client, phone, service, date, isEdit = false) {
-    let records = JSON.parse(localStorage.getItem('records')) || [];
-
-    function getServicePriceByName(serviceName) {
-        const services = JSON.parse(localStorage.getItem('services')) || [];
-        const service = services.find(s => s.название === serviceName);
-        return service ? service.цена : null; 
+async function getNextRecordId() {
+    try {
+        const response = await fetch('/api/appointments');
+        const data = await response.json();
+        const records = Array.isArray(data.appointments) ? data.appointments : [];
+        return records.length > 0 ? Math.max(...records.map(r => parseInt(r.запись_id, 10))) + 1 : 1;
+    } catch (error) {
+        console.error('Ошибка при получении ID следующей записи:', error);
+        return 1;
     }
+}
 
-    
-    let servicePrice = getServicePriceByName(service); 
+async function getMasterIdByName(masterName) {
+    try {
+        const response = await fetch('/api/masters');
+        const data = await response.json();
+        console.log('Masters from API:', data);
 
-    
-    if (service === 'Другое') {
-        servicePrice = '-';
-    } else if (servicePrice === null) {
-        console.warn(`Цена для услуги "${service}" не найдена.`);
-        servicePrice = '0'; 
+        // Приводим строки к нижнему регистру и убираем лишние пробелы
+        const normalizedMasterName = masterName.trim().toLowerCase();
+
+        const master = data.find(m => m.имя.trim().toLowerCase() === normalizedMasterName);
+
+        return master ? master.мастер_id : null;
+    } catch (error) {
+        console.error('Ошибка при получении мастера:', error);
+        return null;
     }
+}
 
-    if (isEdit) {
-        const recordExists = records.some(record => 
-            record.мастер_имя === master &&
-            record.дата_время.split(" ")[0] === date &&
-            record.дата_время.split(" ")[1] === time
-        );
+async function getServiceIdByName(serviceName) {
+    try {
+        const response = await fetch('/api/services');
+        const data = await response.json();
+        console.log('Services from API:', data);
 
-        if (!recordExists) {
-            console.warn('Запись для редактирования не найдена');
-            return; 
+        // Приводим строки к нижнему регистру и убираем лишние пробелы
+        const normalizedServiceName = serviceName.trim().toLowerCase();
+
+        const service = data.find(s => s.название.trim().toLowerCase() === normalizedServiceName);
+
+        return service ? service.услуга_id : null;
+    } catch (error) {
+        console.error('Ошибка при получении услуги:', error);
+        return null;
+    }
+}
+
+
+
+async function saveRecord(master, time, client, phone, service, date, isEdit = false) {
+    try {
+        console.log('Trying to find master:', master);
+        console.log('Trying to find service:', service);
+
+        const [masterId, serviceId, nextRecordId] = await Promise.all([
+            getMasterIdByName(master),
+            getServiceIdByName(service),
+            getNextRecordId()
+        ]);
+
+        console.log('masterId:', masterId);
+        console.log('serviceId:', serviceId);
+
+        if (!masterId || !serviceId) {
+            console.error('Ошибка: мастер или услуга не найдены.');
+            return;
         }
 
-        records = records.map(record => {
-            if (
-                record.мастер_имя === master &&
-                record.дата_время.split(" ")[0] === date &&
-                record.дата_время.split(" ")[1] === time
-            ) {
-                return {
-                    ...record,
-                    клиент_имя: client,
-                    клиент_телефон: phone,
-                    услуга_название: service,
-                    услуга_цена: servicePrice 
-                };
-            }
-            return record;
-        });
-    } else {
-        const duplicateRecord = records.some(record => 
-            record.мастер_имя === master &&
-            record.дата_время.split(" ")[0] === date &&
-            record.дата_время.split(" ")[1] === time
-        );
-
-        if (duplicateRecord) {
-            console.warn('Запись уже существует');
-            return; 
-        }
-
-        records.push({
-            запись_id: getNextRecordId().toString(), 
+        const requestData = {
+            запись_id: isEdit ? undefined : nextRecordId.toString(),
             клиент_имя: client,
             клиент_телефон: phone,
-            клиент_email: '-', 
-            мастер_id: getMasterIdByName(master),
+            клиент_email: '-',
+            мастер_id: masterId,
             мастер_имя: master,
-            услуга_id: getServiceIdByName(service),
+            услуга_id: serviceId,
             услуга_название: service,
-            услуга_цена: servicePrice, 
             дата_время: `${date} ${time}`,
             статус: 'Подтверждена'
+        };
+
+
+        const response = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
         });
-    }
-
-    try {
-        localStorage.setItem('records', JSON.stringify(records));
-    } catch (error) {
-        console.error('Ошибка при сохранении записей в localStorage:', error);
-    }
-}
 
 
-export function loadRecords(date) {
-    const records = JSON.parse(localStorage.getItem('records')) || [];
-    const dateToLoad = date || new Date().toISOString().split('T')[0];
-
-    document.querySelectorAll('.schedule-cell').forEach(cell => {
-        cell.textContent = ''; 
-    });
-
-    records.forEach(record => {
-        const recordDate = record.дата_время.split(" ")[0];
-        const recordTime = record.дата_время.split(" ")[1];
-
-        if (recordDate === dateToLoad) {
-            const cell = document.querySelector(
-                `.schedule-cell[data-master="${record.мастер_имя}"][data-time="${recordTime}"]`
-            );
-            if (cell) {
-                cell.textContent = `${record.клиент_имя} (${record.услуга_название})`;
-            }
+        if (!response.ok) {
+            throw new Error(`Ошибка при ${isEdit ? 'редактировании' : 'создании'} записи`);
         }
-    });
+
+        console.log('Запись успешно сохранена');
+        await loadRecords(date);
+    } catch (error) {
+        console.error('Ошибка при сохранении записи:', error);
+    }
 }
 
-document.addEventListener('DOMContentLoaded', loadRecords);
+
+
+export async function loadRecords(date) {
+    try {
+        const response = await fetch('/api/appointments');
+        const data = await response.json();
+        const records = Array.isArray(data.appointments) ? data.appointments : [];
+        const dateToLoad = date || new Date().toISOString().split('T')[0];
+
+        document.querySelectorAll('.schedule-cell').forEach(cell => {
+            cell.textContent = '';
+        });
+
+        records.forEach(record => {
+            const recordDate = record.дата_время.split(" ")[0];
+            const recordTime = record.дата_время.split(" ")[1];
+
+            if (recordDate === dateToLoad) {
+                const cell = document.querySelector(
+                    `.schedule-cell[data-master="${record.мастер_имя}"][data-time="${recordTime}"]`
+                );
+                if (cell) {
+                    cell.textContent = `${record.клиент_имя} (${record.услуга_название})`;
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка при загрузке записей:', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => loadRecords());
 
 
 const serviceSelect = document.getElementById('serviceSelect');
@@ -437,7 +449,7 @@ serviceSelect.addEventListener('change', () => {
         otherServiceInput.required = true;
     } else {
         otherServiceContainer.style.display = 'none';
-        otherServiceInput.value = ''; 
+        otherServiceInput.value = '';
         otherServiceInput.required = false;
     }
 });
@@ -448,69 +460,99 @@ deleteClientButton.addEventListener('click', () => {
         const masterName = selectedCell.dataset.master;
         const time = selectedCell.dataset.time;
 
-        deleteRecord(masterName, time, state.selectedDate); 
+        deleteRecord(masterName, time, state.selectedDate);
 
         closeClientModal();
-        loadRecords(state.selectedDate); 
+        loadRecords(state.selectedDate);
     }
 });
 
 
 
-function populateServiceSelect(masterSpecialization) {
-    const services = JSON.parse(localStorage.getItem('services')) || [];
-    
-    
-    const filteredServices = services.filter(service => service.специализация === masterSpecialization);
-    
-    
-    serviceSelect.innerHTML = `
-        <option value="" disabled selected>-- Выберите услугу --</option>
-    `;
+async function populateServiceSelect(masterSpecialization) {
+    try {
+        const response = await fetch('/api/services');
+        const services = await response.json();
 
-    
-    filteredServices.forEach(service => {
-        const option = document.createElement('option');
-        option.value = service.услуга_id;
-        option.textContent = service.название; 
-        serviceSelect.appendChild(option);
-    });
+        const filteredServices = services.filter(service => service.специализация === masterSpecialization);
 
-    
-    const otherOption = document.createElement('option');
-    otherOption.value = 'other';
-    otherOption.textContent = 'Другое';
-    serviceSelect.appendChild(otherOption);
+        serviceSelect.innerHTML = `
+            <option value="" disabled selected>-- Выберите услугу --</option>
+        `;
+
+        filteredServices.forEach(service => {
+            const option = document.createElement('option');
+            option.value = service.услуга_id;
+            option.textContent = service.название;
+            serviceSelect.appendChild(option);
+        });
+
+        const otherOption = document.createElement('option');
+        otherOption.value = 'other';
+        otherOption.textContent = 'Другое';
+        serviceSelect.appendChild(otherOption);
+    } catch (error) {
+        console.error('Ошибка при загрузке услуг:', error);
+    }
 }
 
-function deleteRecord(master, time, date) {
-    let records = JSON.parse(localStorage.getItem('records')) || [];
-    const updatedRecords = records.filter(record => {
-        const recordDate = record.дата_время.split(" ")[0];
-        const recordTime = record.дата_время.split(" ")[1];
-        const recordMaster = record.мастер_имя;
+async function deleteRecord(master, time, date) {
+    try {
+        // Найдем запись для удаления по мастеру, времени и дате
+        const response = await fetch('/api/appointments');
+        const records = await response.json();
 
-        return !(recordMaster === master && recordTime === time && recordDate === date);
-    });
+        const recordToDelete = records.find(record => {
+            const recordDate = record.дата_время.split(" ")[0];
+            const recordTime = record.дата_время.split(" ")[1];
+            const recordMaster = record.мастер_имя;
+            return recordMaster === master && recordTime === time && recordDate === date;
+        });
 
-    localStorage.setItem('records', JSON.stringify(updatedRecords));
-    loadRecords(date); 
+        if (recordToDelete) {
+            // Удаляем запись
+            const deleteResponse = await fetch(`/api/appointments/${recordToDelete.запись_id}`, {
+                method: 'DELETE',
+            });
+
+            if (deleteResponse.ok) {
+                console.log('Запись успешно удалена');
+                loadRecords(date);
+            } else {
+                throw new Error('Ошибка при удалении записи');
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении записи:', error);
+    }
 }
 
 
 
-function handleCellClick(cell) {
+
+async function handleCellClick(cell) {
+    console.log('Клик по ячейке:', cell);
+
     const cellDateTime = new Date(`${state.selectedDate}T${cell.dataset.time}`);
     const today = new Date();
     const maxDate = new Date();
     maxDate.setDate(today.getDate() + 30);
 
     if (cellDateTime < today || cellDateTime > maxDate) {
+        console.log('Выбранная дата вне допустимого диапазона');
         return;
     }
 
-    openClientModal(cell);
+    console.log('Запрос к API на получение записи...');
+    const record = await getRecordForCell(cell.dataset.master, cell.dataset.time, state.selectedDate);
+
+    console.log('Полученная запись:', record);
+
+    // Открываем модальное окно независимо от наличия записи
+    openClientModal(cell, record);
 }
+
+
 
 const clientModal = document.getElementById('clientModal');
 const clientNameInput = document.getElementById('clientNameInput');
@@ -519,79 +561,143 @@ const errorMessage = document.getElementById('errorMessage');
 
 let selectedCell = null;
 
-function getRecordForCell(master, time, date) {
-    const records = JSON.parse(localStorage.getItem('records')) || [];
-    return records.find(record => {
-        const recordTime = record.дата_время.split(" ")[1];
-        const recordDate = record.дата_время.split(" ")[0]; 
-        const recordMaster = record.мастер_имя;
-        return recordMaster === master && recordTime === time && recordDate === date; 
-    });
+async function getRecordForCell(master, time, date) {
+    try {
+        console.log('Запрос к API на получение записи...');
+        const response = await fetch('/api/appointments');
+        const data = await response.json();
+        console.log('Полученные данные:', data);
+
+        if (!Array.isArray(data.appointments) || !Array.isArray(data.masters)) {
+            throw new Error('Некорректные данные: отсутствует массив записей или мастеров');
+        }
+
+        console.log('Поиск записи: мастер:', master, 'время:', time, 'дата:', date);
+
+        // Получаем массив мастеров
+        const masters = data.masters;
+
+        const foundRecord = data.appointments.find(record => {
+            console.log('Проверяем запись:', record);
+
+            const recordDateTime = record.дата_время; // Например, "2025-02-27 10:30:00"
+            const [recordDate, recordTimeFull] = recordDateTime.split(" ");
+            const recordTime = recordTimeFull.slice(0, 5); // Убираем секунды ("10:30:00" → "10:30")
+
+            // Найти имя мастера по ID
+            const recordMasterObject = masters.find(m => m.мастер_id === record.мастер_id);
+            const recordMaster = recordMasterObject ? recordMasterObject.имя : 'Неизвестный мастер';
+
+            console.log(`Сравнение: мастер(${recordMaster} === ${master}), время(${recordTime} === ${time}), дата(${recordDate} === ${date})`);
+
+            return recordMaster === master && recordTime === time && recordDate === date;
+        });
+
+        console.log('Найденная запись:', foundRecord);
+        return foundRecord;
+    } catch (error) {
+        console.error('Ошибка при получении записи:', error);
+        return null;
+    }
 }
 
 
-function openClientModal(cell) {
+
+
+
+async function openClientModal(cell, record = null) {
+    console.log('Открытие модального окна для ячейки:', cell);
+
     selectedCell = cell;
 
-    
+    // Очищаем поля перед открытием
     clientNameInput.value = '';
     document.getElementById('clientPhoneInput').value = '';
     serviceSelect.value = '';
     otherServiceContainer.style.display = 'none';
     otherServiceInput.value = '';
-    deleteClientButton.style.display = 'none'; 
+    deleteClientButton.style.display = 'none';
 
-    
     const masterName = cell.dataset.master;
-    const masters = JSON.parse(localStorage.getItem('masters')) || [];
-    const selectedMaster = masters.find(master => master.имя === masterName);
-    const masterSpecialization = selectedMaster ? selectedMaster.специализация : '';
-
-    
-    populateServiceSelect(masterSpecialization);
-
-    
     const time = cell.dataset.time;
-    const date = cell.dataset.date; 
-    const existingRecord = getRecordForCell(masterName, time, date); 
+    const date = cell.dataset.date;
 
-    if (existingRecord) {
-        
-        clientNameInput.value = existingRecord.клиент_имя || '';
-        document.getElementById('clientPhoneInput').value = existingRecord.клиент_телефон || '';
-        serviceSelect.value = getServiceIdByName(existingRecord.услуга_название) || '';
+    try {
+        // Запросы к API
+        const [mastersResponse, appointmentsResponse, servicesResponse] = await Promise.all([
+            fetch('/api/masters'),
+            fetch('/api/appointments'),
+            fetch('/api/services')
+        ]);
 
-        updateStatusStyles(existingRecord.статус);
-        
-        document.getElementById('recordStatus').textContent = existingRecord.статус || 'Неизвестно';
-        document.getElementById('recordId').textContent = existingRecord.запись_id || '-';
-        document.getElementById('recordDetails').style.display = 'block';
+        const mastersData = await mastersResponse.json();
+        const appointmentsData = await appointmentsResponse.json();
+        const servicesData = await servicesResponse.json();
 
-        
-        deleteClientButton.style.display = 'inline-block';
-    } else {
-        
-        document.getElementById('recordDetails').style.display = 'none';
-        document.getElementById('recordStatus').textContent = '';
+        const masters = Array.isArray(mastersData) ? mastersData : mastersData.masters;
+        const services = Array.isArray(servicesData) ? servicesData : servicesData.services;
+
+        // Найти мастера по имени
+        const selectedMaster = masters.find(master => master.имя === masterName);
+        if (!selectedMaster) {
+            console.error('Мастер не найден:', masterName);
+            return;
+        }
+
+        // Заполняем список услуг, доступных у мастера
+        populateServiceSelect(selectedMaster.специализация);
+
+        if (record) {
+            console.log('Заполняем данные найденной записи...');
+            const clientResponse = await fetch(`/api/clients/${record.клиент_id}`);
+            const client = await clientResponse.json();
+
+            const clientName = client ? `${client.имя} ${client.фамилия}` : '';
+            const clientPhone = client ? client.телефон : '';
+
+            // Найти услугу по ID
+            const service = services.find(s => s.услуга_id === record.услуга_id);
+            const serviceName = service ? service.название : '';
+
+            clientNameInput.value = clientName;
+            document.getElementById('clientPhoneInput').value = clientPhone;
+            serviceSelect.value = service ? service.услуга_id : '';
+
+            updateStatusStyles(record.статус);
+
+            document.getElementById('recordStatus').textContent = record.статус || 'Неизвестно';
+            document.getElementById('recordId').textContent = record.запись_id || '-';
+            document.getElementById('recordDetails').style.display = 'block';
+
+            deleteClientButton.style.display = 'inline-block';
+        } else {
+            console.log('Запись отсутствует. Открываем пустое модальное окно.');
+            document.getElementById('recordDetails').style.display = 'none';
+            document.getElementById('recordStatus').textContent = 'Новая запись';
+        }
+
+        clientModal.style.display = 'flex';
+        clientNameInput.focus();
+    } catch (error) {
+        console.error('Ошибка при загрузке данных:', error);
     }
-
-    clientModal.style.display = 'flex';
-    clientNameInput.focus();
 }
+
+
 
 function closeClientModal() {
     clientModal.style.display = 'none';
     selectedCell = null;
-    errorMessage.style.display = 'none'; 
+    errorMessage.style.display = 'none';
 }
 
 function updateStatusStyles(status) {
     const statusElement = document.getElementById('recordStatus');
 
-    
+
     statusElement.classList.remove('status-awaiting', 'status-confirmed', 'status-rejected');
 
-    
+
     if (status === 'Ожидает подтверждения') {
         statusElement.textContent = 'Ожидает подтверждения';
         statusElement.classList.add('status-awaiting');
@@ -633,7 +739,7 @@ saveClientButton.addEventListener('click', () => {
         closeClientModal();
         errorMessage.style.display = 'none';
 
-        loadRecords(state.selectedDate); 
+        loadRecords(state.selectedDate);
     } else {
         errorMessage.textContent = 'Введите имя клиента, телефон и выберите услугу.';
         errorMessage.style.display = 'block';
@@ -643,10 +749,10 @@ saveClientButton.addEventListener('click', () => {
 
 
 clientNameInput.addEventListener('input', () => {
-    
+
     clientNameInput.value = clientNameInput.value.replace(/[^a-zA-Zа-яА-Я\s]/g, '');
 
-    
+
     if (/[^a-zA-Zа-яА-Я\s]/.test(clientNameInput.value)) {
         errorMessage.textContent = 'Имя может содержать только буквы и пробелы.';
         errorMessage.style.display = 'block';
@@ -665,8 +771,8 @@ window.addEventListener('click', (event) => {
 window.loadRecords = loadRecords;
 document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0]; 
+    const todayString = today.toISOString().split('T')[0];
 
-    
+
     loadRecords(todayString);
 });

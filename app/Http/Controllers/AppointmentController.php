@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AppointmentRequest;
-use Illuminate\Http\Request;
 use App\Models\Appointment;
 use App\Models\Master;
 use App\Models\Service;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AppointmentController extends Controller
@@ -130,6 +130,27 @@ class AppointmentController extends Controller
         }
 
         return $parsedSchedule;
+    }
+
+    public function update(Request $request, $id)
+    {
+        $appointment = Appointment::find($id);
+
+        if (!$appointment) {
+            return response()->json(['message' => 'Запись не найдена'], 404);
+        }
+
+        $request->validate([
+            'клиент_id' => 'required|integer|exists:clients,клиент_id',
+            'мастер_id' => 'required|integer|exists:masters,мастер_id',
+            'услуга_id' => 'required|integer|exists:services,услуга_id',
+            'дата_время' => 'required|date_format:Y-m-d H:i:s',
+            'статус' => 'required|string'
+        ]);
+
+        $appointment->update($request->all());
+
+        return response()->json(['message' => 'Запись обновлена', 'appointment' => $appointment]);
     }
 
 

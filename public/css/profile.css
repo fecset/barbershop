@@ -95,12 +95,11 @@ body {
 .container {
     width: 100%;
     max-width: 1140px;
-    margin: 0 auto;
     padding: 20px;
     background-color: #303336;
     color: #fff;
     border-radius: 10px;
-    margin-top: 50px;
+    margin: 50px auto 0;
 }
 
 .container h2 {

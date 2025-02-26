@@ -22,7 +22,7 @@
 
     <script type="module" src="{{ asset('admin-panel/js/main.js') }}"></script>
 
-    <!-- Календарь -->
+
     <script src="https://cdn.jsdelivr.net/npm/color-calendar@1.0.5/dist/bundle.js"></script>
     <link rel="stylesheet" href="{{ asset('admin-panel/css/calendar/theme-basic.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-panel/css/calendar/theme-glass.css') }}">
@@ -32,11 +32,6 @@
 </head>
 
 <body class="page">
-<script>
-    if (!localStorage.getItem('isLoggedIn')) {
-        window.location.href = '/admin-panel/auth';
-    }
-</script>
 
 <header class="header">
     <div class="header__top">
@@ -45,16 +40,28 @@
     </div>
     <div class="header__login">
         <img class="header__login-icon" src="{{ asset('admin-panel/img/avatar2.png') }}" alt="User Icon">
-        <span class="header__login-text">Username</span>
+        <span class="header__login-text">
+            @if(auth('superadmin')->check())
+                {{ auth('superadmin')->user()->имя }} <!-- Имя суперадминистратора -->
+            @elseif(auth('admin')->check())
+                {{ auth('admin')->user()->имя }} <!-- Имя администратора -->
+            @else
+                Username
+            @endif
+        </span>
         <button class="header__arrow-button" id="dropdownButton">
             <img src="{{ asset('admin-panel/img/arrow-down.svg') }}" alt="Arrow Down">
         </button>
         <div class="dropdown-menu" id="dropdownMenu">
             <ul>
                 <li>
-                    <a href="{{ route('admin.auth') }}" id="logoutLink">
-                        Выйти <img src="{{ asset('admin-panel/img/log-out.svg') }}" alt="">
-                    </a>
+                    <form action="{{ route('admin.logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" id="logoutLink" style="background: none; border: none; color: white; display: flex; align-items: center; padding: 8px 12px; cursor: pointer;">
+                            Выйти
+                            <img src="{{ asset('admin-panel/img/log-out.svg') }}" alt="" style="margin-left: 8px; height: 18px;">
+                        </button>
+                    </form>
                 </li>
             </ul>
         </div>
@@ -67,8 +74,23 @@
         <div class="sidebar__user">
             <img class="sidebar__avatar" src="{{ asset('admin-panel/img/avatar.png')}}" alt="User Avatar">
             <div class="sidebar__user-info">
-                <span class="sidebar__username">Username</span>
-                <span class="sidebar__role">Admin</span>
+                <span class="sidebar__username">
+                    @if(auth('superadmin')->check())
+                        {{ auth('superadmin')->user()->имя }} <!-- Имя суперадминистратора -->
+                    @elseif(auth('admin')->check())
+                        {{ auth('admin')->user()->имя }} <!-- Имя администратора -->
+                    @else
+                        Username
+                    @endif</span>
+                <span class="sidebar__role">
+                    @if(auth('superadmin')->check())
+                        Superadmin
+                    @elseif(auth('admin')->check())
+                        Admin
+                    @else
+                        Guest
+                    @endif
+                </span>
             </div>
         </div>
 
@@ -100,23 +122,15 @@
                     Записи
                 </a>
             </li>
+            @if(auth('superadmin')->check())
             <li class="sidebar__item" id="adminTab">
                 <a href="#" class="sidebar__link" data-icon="admin" onclick="showTab('admin')">
                     <img class="sidebar__icon" src="{{ asset('admin-panel/img/admin.svg') }}" alt="Admin Icon">
                     Администраторы
                 </a>
             </li>
-
+            @endif
         </ul>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const role = localStorage.getItem('role');
-                if (role === 'superadmin') {
-                    document.getElementById('adminTab').style.display = 'block';
-                }
-            });
-        </script>
 
     </aside>
 
@@ -375,6 +389,7 @@
                     <td><span id="masterName" contenteditable="false">Иван</span></td>
                     <td><img class="edit-icon" src="{{ asset('admin-panel/img/edit.svg') }}" alt="Edit"></td>
                 </tr>
+
                 <tr>
                     <td class="modal-label">Специализация</td>
                     <td>
@@ -497,7 +512,8 @@
     </div>
 
     <!-- Окно Администраторы -->
-    <div class="main-admins main" id="adminSection" style="display: none;">
+    @if(auth('superadmin')->check())
+    <div class="main-admins main" id="adminSection">
         <div class="admins-header">
             <h2 class="admins-title">Список администраторов</h2>
         </div>
@@ -508,7 +524,6 @@
                     <th>ID</th>
                     <th>Имя</th>
                     <th>Логин</th>
-                    <th>Пароль</th>
                     <th>Действие</th>
                     <th>
                         <button id="addAdminButton" class="admin-button admin__button--add">
@@ -521,7 +536,7 @@
                 </tbody>
             </table>
         </div>
-
+        @endif
         <!-- Модальное окно настройки администратора -->
         <div id="adminSettingsModal" class="modal">
             <div class="modal-content">
@@ -538,7 +553,7 @@
                     <tr>
                         <td>Имя:</td>
                         <td>
-                            <span id="adminName"></span>
+                            <span id="adminName" contenteditable="false"></span>
                         </td>
                         <td>
                             <img src="{{ asset('admin-panel/img/edit.svg') }}" alt="Edit" class="edit-icon" style="cursor:pointer;">
@@ -547,21 +562,13 @@
                     <tr>
                         <td>Логин:</td>
                         <td>
-                            <span id="adminLogin"></span>
+                            <span id="adminLogin" contenteditable="false"></span>
                         </td>
                         <td>
                             <img src="{{ asset('admin-panel/img/edit.svg') }}" alt="Edit" class="edit-icon" style="cursor:pointer;">
                         </td>
                     </tr>
-                    <tr>
-                        <td>Пароль:</td>
-                        <td>
-                            <span id="adminPassword"></span>
-                        </td>
-                        <td>
-                            <img src="{{ asset('admin-panel/img/edit.svg') }}" alt="Edit" class="edit-icon" style="cursor:pointer;">
-                        </td>
-                    </tr>
+
                 </table>
                 <button id="saveAdminSettings" class="modal-save-button">Сохранить</button>
             </div>
