@@ -1,2 +1,6 @@
 User-agent: *
-Disallow:
+Disallow: /admin-panel/
+Disallow: /profile
+Disallow: /record
+
+Sitemap: https://localhost/sitemap.xml

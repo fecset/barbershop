@@ -3,11 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Личный кабинет</title>
+
+    <title>Личный кабинет | Бородатый Гуру</title>
+    <meta name="description" content="Ваш личный кабинет в барбершопе «Бородатый Гуру». Управляйте своими записями, просматривайте историю посещений и записывайтесь на новые услуги.">
+    <meta name="keywords" content="личный кабинет, барбершоп, записи, услуги, Москва, бронирование, мастер, стрижка, бритье">
+    <meta name="author" content="Бородатый Гуру">
+    <meta name="robots" content="noindex, nofollow">
+
+    <meta property="og:title" content="Личный кабинет | Бородатый Гуру">
+    <meta property="og:description" content="Ваш личный кабинет в барбершопе «Бородатый Гуру». Управляйте своими записями, просматривайте историю посещений и записывайтесь на новые услуги.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="{{ asset('img/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/x-icon" sizes="16x16" href="{{ asset('img/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ asset('img/favicon/site.webmanifest') }}">
+
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <meta name="google-site-verification" content="SjTH18c0vMrO1PjwzfqLQuZOWxFTm_k60U3YIFF0uB4">
+    <meta name="yandex-verification" content="c9a4e132d5f4950c">
+
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/profile.css') }}">
     <script defer src="{{ asset('js/profile.js') }}"></script>
 </head>
+
 <body>
 <header class="header">
     <div class="header__container">

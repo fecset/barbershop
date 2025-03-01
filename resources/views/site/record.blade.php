@@ -3,7 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Запись</title>
+
+    <title>Записаться на прием «Бородатый Гуру»</title>
+    <meta name="description" content="Запишитесь на стрижку или бритье в барбершопе «Бородатый Гуру» в Москве. Удобная форма записи на услуги, выбор мастера и даты.">
+    <meta name="keywords" content="записаться на стрижку, барбершоп, Москва, запись онлайн, услуги для мужчин, бритье, стрижка, барбершоп Москва">
+    <meta name="author" content="Бородатый Гуру">
+    <meta name="robots" content="noindex, nofollow">
+
+    <meta property="og:title" content="Записаться на прием в барбершоп «Бородатый Гуру»">
+    <meta property="og:description" content="Запишитесь на стрижку или бритье в барбершопе «Бородатый Гуру» в Москве. Удобная форма записи на услуги, выбор мастера и даты.">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/x-icon" sizes="32x32" href="{{ asset('img/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/x-icon" sizes="16x16" href="{{ asset('img/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ asset('img/favicon/site.webmanifest') }}">
+
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <meta name="google-site-verification" content="SjTH18c0vMrO1PjwzfqLQuZOWxFTm_k60U3YIFF0uB4">
+    <meta name="yandex-verification" content="c9a4e132d5f4950c">
+
     <link rel="stylesheet" href="{{ asset('css/record.css') }}">
     <link rel="stylesheet" href="{{ asset('css/flatpickr.min.css') }}">
     <script src="{{ asset('js/flatpickr.min.js') }}"></script>
@@ -11,8 +32,8 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ru.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
-
 </head>
+
 <body>
 <div style="display: flex; align-items: center; width: 34%;">
     <p class="back" style="display: flex; align-items: center;" onclick="window.location.href='{{ route('home') }}'">
