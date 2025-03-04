@@ -51,8 +51,21 @@
     @endisset
     <form method="POST" action="{{route('login')}}">
         @csrf
-        @include('components.input', ['attributeName' => 'email', 'attributeType' => 'email', 'attributeTitle' => 'E-mail'])
-        @include('components.input', ['attributeName' => 'password', 'attributeType' => 'password', 'attributeTitle' => 'Пароль'])
+        @include('components.input', [
+            'attributeName' => 'phone',
+            'attributeType' => 'tel',
+            'attributeTitle' => 'Телефон',
+            'attributePattern' => '[0-9]{11}',
+            'attributePlaceholder' => 'Например: 79251234567',
+            'attributeRequired' => true,
+            'attributeMaxlength' => 11
+        ])
+        @include('components.input', [
+            'attributeName' => 'password',
+            'attributeType' => 'password',
+            'attributeTitle' => 'Пароль',
+            'attributeRequired' => true
+        ])
         <button type="submit" class="submit-button">Авторизоваться</button>
     </form>
 </div>

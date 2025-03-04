@@ -25,8 +25,8 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'required|min:2|max:30',
             'last_name' => 'required|min:2|max:30',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|min:10|max:11',
+            'phone' => 'required|string|size:11|unique:users,phone',
+            'email' => 'nullable|email|unique:users,email',
             'password' => 'required|min:8|regex:/[A-Z]/|regex:/\d.*\d.*\d.*\d/',
         ];
     }
@@ -39,7 +39,8 @@ class RegisterRequest extends FormRequest
                 'email' => 'Данное поле должно быть формата электронной почты имя@почта.ру',
                 'min' => 'Минимальное количество символов :min',
                 'max' => 'Максимальное количество символов :max',
-                'unique' => 'Этот E-mail уже зарегистрирован',
+                'unique' => 'Этот телефон уже зарегистрирован',
+                'phone.size' => 'Номер телефона должен содержать 11 цифр',
                 'password.regex' => 'Пароль должен содержать минимум одну заглавную букву и не менее 4 цифр.',
             ];
     }

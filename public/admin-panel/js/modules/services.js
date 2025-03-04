@@ -56,25 +56,11 @@ export async function initServices() {
             button.addEventListener('click', async function() {
                 const row = this.closest('tr');
                 const serviceId = row.querySelector('.service__id').textContent;
-
                 try {
-                    // Отправка запроса на сервер для удаления услуги
-                    const response = await fetch(`/api/services/${serviceId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    });
-
-                    if (response.ok) {
-                        // Услуга успешно удалена, удаляем строку из таблицы
-                        row.remove();
-                    } else {
-                        // Обработка ошибки
-                        console.error('Ошибка при удалении услуги:', response.statusText);
-                    }
+                    await deleteService(serviceId);
+                    row.remove();
                 } catch (error) {
-                    console.error('Ошибка при отправке запроса:', error);
+                    console.error('Ошибка удаления услуги:', error);
                 }
             });
         });
@@ -147,7 +133,9 @@ export async function initServices() {
         });
     }
 
-    populateServices();
+    populateServices().catch(error => {
+        console.error('Ошибка при загрузке услуг:', error);
+    });
 
 
     document.getElementById('closeAddServiceModal').addEventListener('click', function() {
@@ -244,41 +232,29 @@ export async function initServices() {
     document.getElementById('saveNewService').addEventListener('click', async function() {
         const newServiceName = document.getElementById('newServiceName').value.trim();
         const newServicePrice = document.getElementById('newServicePrice').value.trim();
-        const serviceSpecialization = document.getElementById('serviceSpec').value;
-        const priceError = document.getElementById('priceError');
-        const nameError = document.getElementById('nameError');
-        const specializationError = document.getElementById('specializationError');
+        const newServiceSpecialization = document.getElementById('newServiceSpecialization').value;
 
-        priceError.textContent = '';
-        nameError.textContent = '';
-        specializationError.textContent = '';
-
-        if (!newServiceName) {
-            nameError.textContent = 'Введите название услуги.';
-            return;
-        } else if (!/^[a-zA-Zа-яА-Я\s]+$/.test(newServiceName)) {
-            nameError.textContent = 'Название услуги может содержать только буквы.';
+        if (!newServiceName || !newServicePrice || !newServiceSpecialization) {
+            console.error('Пожалуйста, заполните все поля.');
             return;
         }
 
-        if (!newServicePrice || isNaN(newServicePrice) || newServicePrice <= 0) {
-            priceError.textContent = 'Введите корректную цену.';
+        if (!/^[a-zA-Zа-яА-Я\s]+$/.test(newServiceName)) {
+            console.error('Название услуги может содержать только буквы.');
             return;
         }
 
-        if (serviceSpecialization === "") {
-            specializationError.textContent = 'Выберите специализацию.';
+        if (isNaN(newServicePrice) || newServicePrice <= 0) {
+            console.error('Введите корректную цену.');
             return;
         }
 
-        // Создаем объект новой услуги без ID
         const newService = {
             название: newServiceName,
             цена: newServicePrice,
-            специализация: serviceSpecialization
+            специализация: newServiceSpecialization
         };
 
-        // Отправляем новую услугу на сервер
         try {
             const response = await fetch('/api/services', {
                 method: 'POST',
@@ -300,7 +276,7 @@ export async function initServices() {
         // Очистить форму и скрыть модальное окно
         document.getElementById('newServiceName').value = '';
         document.getElementById('newServicePrice').value = '';
-        document.getElementById('serviceSpec').value = '';
+        document.getElementById('newServiceSpecialization').value = '';
         document.getElementById('addServiceModal').style.display = 'none';
     });
 

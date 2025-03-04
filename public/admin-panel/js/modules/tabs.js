@@ -1,4 +1,3 @@
-
 export function initTabSwitching() {
     const links = document.querySelectorAll('.sidebar__link');
     const servicesSection = document.getElementById('servicesSection');
@@ -15,36 +14,34 @@ export function initTabSwitching() {
         const mainContentSection = document.getElementById('main-content');
         const adminSection = document.getElementById('adminSection');
 
-
-        servicesSection.style.display = 'none';
-        mastersSection.style.display = 'none';
-        recordsSection.style.display = 'none';
-        mainContentSection.style.display = 'none';
+        if (servicesSection) servicesSection.style.display = 'none';
+        if (mastersSection) mastersSection.style.display = 'none';
+        if (recordsSection) recordsSection.style.display = 'none';
+        if (mainContentSection) mainContentSection.style.display = 'none';
         if (adminSection) adminSection.style.display = 'none';
 
         let activeLink;
         switch(tabName) {
             case 'services':
-                servicesSection.style.display = 'block';
+                if (servicesSection) servicesSection.style.display = 'block';
                 activeLink = document.querySelector('[data-icon="services"]');
                 break;
             case 'masters':
-                mastersSection.style.display = 'block';
+                if (mastersSection) mastersSection.style.display = 'block';
                 activeLink = document.querySelector('[data-icon="masters"]');
                 break;
             case 'records':
-                recordsSection.style.display = 'block';
+                if (recordsSection) recordsSection.style.display = 'block';
                 activeLink = document.querySelector('[data-icon="records"]');
                 break;
             case 'admin':
-                adminSection.style.display = 'block';
+                if (adminSection) adminSection.style.display = 'block';
                 activeLink = document.querySelector('[data-icon="admin"]');
                 break;
             default:
-                mainContentSection.style.display = 'flex';
+                if (mainContentSection) mainContentSection.style.display = 'flex';
                 activeLink = document.querySelector('[data-icon="home"]');
         }
-
 
         document.querySelectorAll('.sidebar__link').forEach(link => link.classList.remove('sidebar__link--active'));
         if (activeLink) {
@@ -55,13 +52,8 @@ export function initTabSwitching() {
             }
         }
 
-
         localStorage.setItem('activeTab', tabName);
     }
-
-
-
-
 
     window.showTab = showTab;
 

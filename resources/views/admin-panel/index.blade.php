@@ -20,9 +20,10 @@
     <link rel="stylesheet" href="{{ asset('admin-panel/css/records.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-panel/css/admin.css') }}">
     <link rel="stylesheet" href="{{ asset('admin-panel/css/calendar.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 
     <script type="module" src="{{ asset('admin-panel/js/main.js') }}"></script>
-
 
     <script src="https://cdn.jsdelivr.net/npm/color-calendar@1.0.5/dist/bundle.js"></script>
     <link rel="stylesheet" href="{{ asset('admin-panel/css/calendar/theme-basic.css') }}">
@@ -170,7 +171,7 @@
                 <input type="text" id="clientNameInput" maxlength="35" required>
 
                 <label for="clientPhoneInput">Телефон:</label>
-                <input type="tel" id="clientPhoneInput" maxlength="15" placeholder="+7XXXXXXXXXX" required>
+                <input type="tel" id="clientPhoneInput" maxlength="15" placeholder="7XXXXXXXXXX" required readonly>
 
                 <label for="serviceSelect">Выберите услугу:</label>
                 <select id="serviceSelect" required>
@@ -405,7 +406,7 @@
                 </tr>
                 <tr>
                     <td class="modal-label">График</td>
-                    <td><span id="masterSchedule" contenteditable="false">Пн-Пт 9:00-18:00</span></td>
+                    <td><span id="masterSchedule" contenteditable="true"></span></td>
                     <td><img class="edit-icon" src="{{ asset('admin-panel/img/edit.svg') }}" alt="Edit"></td>
                 </tr>
             </table>
@@ -432,7 +433,7 @@
             </select>
             <br>
             <label for="newMasterSchedule">График:</label>
-            <input type="text" id="newMasterSchedule" class="newMaster_input" required maxlength="25">
+            <input placeholder="Пн-Пт 9:00-19:00" type="text" id="newMasterSchedule" class="newMaster_input" required>
             <span id="scheduleError" class="error-message"></span>
 
             <br>
@@ -603,6 +604,14 @@
     </div>
 
 </div>
+<script type="module" src="{{ asset('admin-panel/js/modules/tabs.js') }}"></script>
+<script type="module" src="{{ asset('admin-panel/js/modules/masters.js') }}"></script>
+<script type="module" src="{{ asset('admin-panel/js/modules/services.js') }}"></script>
+<script type="module" src="{{ asset('admin-panel/js/modules/records.js') }}"></script>
+<script type="module" src="{{ asset('admin-panel/js/modules/admin.js') }}"></script>
+<script type="module" src="{{ asset('admin-panel/js/main.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 </body>
 
 </html>

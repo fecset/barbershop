@@ -12,7 +12,12 @@ initTabSwitching();
 initMasters();
 initServices();
 initRecords();
-initAdmins();
+
+// Проверяем, является ли пользователь суперадмином
+const isSuperadmin = document.querySelector('#adminTab') !== null;
+if (isSuperadmin) {
+    initAdmins();
+}
 
 const icons = {
     home: {
@@ -101,7 +106,6 @@ document.addEventListener('click', function (event) {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-
     // Загружаем данные о мастерах с сервера
     fetch('/api/masters')
         .then(response => response.json())
@@ -214,10 +218,10 @@ function getRecordsForMaster(masterName) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-
     const userData = JSON.parse(localStorage.getItem('currentUser'));
 
-    logoutLink.addEventListener('click', function () {
+    // Удаляем старый обработчик клика
+    logoutLink.removeEventListener('click', function() {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('role');
         localStorage.removeItem('currentUser');
@@ -225,15 +229,66 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'auth.html';
     });
 
-    const role = localStorage.getItem('role');
+    // Добавляем новый обработчик клика
+    logoutLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = this.closest('form');
+        if (form) {
+            form.submit();
+        }
+    });
 
+    const role = localStorage.getItem('role');
     const activeTab = localStorage.getItem('activeTab') || 'home';
     showTab(activeTab);
-
 });
 
 document.addEventListener('DOMContentLoaded', initScheduleTable);
 
+// Обновляем функцию loadRecords
+export async function loadRecords(date) {
+    try {
+        const response = await fetch('/api/appointments');
+        const data = await response.json();
+        const records = Array.isArray(data.appointments) ? data.appointments : [];
+        const dateToLoad = date || new Date().toISOString().split('T')[0];
+
+        document.querySelectorAll('.schedule-cell').forEach(cell => {
+            cell.textContent = '';
+            cell.classList.remove('has-record');
+        });
+
+        records.forEach(record => {
+            const recordDateTime = record.дата_время;
+            const [recordDate, recordTimeFull] = recordDateTime.split(" ");
+            const recordTime = recordTimeFull.slice(0, 5);
+
+            if (recordDate === dateToLoad) {
+                const master = data.masters.find(m => m.мастер_id === record.мастер_id);
+                const masterName = master ? master.имя : '';
+                
+                const client = data.clients.find(c => c.клиент_id === record.клиент_id);
+                const service = data.services.find(s => s.услуга_id === record.услуга_id);
+                
+                const clientName = client ? `${client.имя} ${client.фамилия}` : 'Неизвестно';
+                const serviceName = service ? service.название : 'Неизвестно';
+
+                const cell = document.querySelector(
+                    `.schedule-cell[data-master="${masterName}"][data-time="${recordTime}"]`
+                );
+                
+                if (cell) {
+                    cell.textContent = `${clientName} (${serviceName})`;
+                    cell.classList.add('has-record');
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка при загрузке записей:', error);
+    }
+}
+
+// Обновляем функцию initScheduleTable
 function initScheduleTable() {
     fetch('/api/masters')
         .then(response => response.json())
@@ -248,11 +303,16 @@ function initScheduleTable() {
         });
 }
 
-
-
-
 function generateScheduleHeader(masters) {
     const mastersRow = document.getElementById('mastersRow');
+    // Очищаем предыдущие заголовки
+    mastersRow.innerHTML = '';
+    // Добавляем пустую ячейку для колонки времени
+    const timeHeader = document.createElement('th');
+    timeHeader.textContent = '';
+    mastersRow.appendChild(timeHeader);
+    
+    // Добавляем заголовки для каждого мастера
     masters.forEach(master => {
         const th = document.createElement('th');
         th.textContent = master.имя;
@@ -260,6 +320,7 @@ function generateScheduleHeader(masters) {
     });
 }
 
+export { generateScheduleHeader };
 
 export function generateScheduleBody(masters) {
     const scheduleBody = document.getElementById('scheduleBody');
@@ -314,17 +375,13 @@ async function getNextRecordId() {
     }
 }
 
+// Обновляем функцию getMasterIdByName
 async function getMasterIdByName(masterName) {
     try {
         const response = await fetch('/api/masters');
         const data = await response.json();
-        console.log('Masters from API:', data);
-
-        // Приводим строки к нижнему регистру и убираем лишние пробелы
         const normalizedMasterName = masterName.trim().toLowerCase();
-
         const master = data.find(m => m.имя.trim().toLowerCase() === normalizedMasterName);
-
         return master ? master.мастер_id : null;
     } catch (error) {
         console.error('Ошибка при получении мастера:', error);
@@ -332,17 +389,13 @@ async function getMasterIdByName(masterName) {
     }
 }
 
+// Обновляем функцию getServiceIdByName
 async function getServiceIdByName(serviceName) {
     try {
         const response = await fetch('/api/services');
         const data = await response.json();
-        console.log('Services from API:', data);
-
-        // Приводим строки к нижнему регистру и убираем лишние пробелы
         const normalizedServiceName = serviceName.trim().toLowerCase();
-
         const service = data.find(s => s.название.trim().toLowerCase() === normalizedServiceName);
-
         return service ? service.услуга_id : null;
     } catch (error) {
         console.error('Ошибка при получении услуги:', error);
@@ -354,87 +407,116 @@ async function getServiceIdByName(serviceName) {
 
 async function saveRecord(master, time, client, phone, service, date, isEdit = false) {
     try {
-        console.log('Trying to find master:', master);
-        console.log('Trying to find service:', service);
-
-        const [masterId, serviceId, nextRecordId] = await Promise.all([
+        const [masterId, serviceId] = await Promise.all([
             getMasterIdByName(master),
-            getServiceIdByName(service),
-            getNextRecordId()
+            getServiceIdByName(service)
         ]);
-
-        console.log('masterId:', masterId);
-        console.log('serviceId:', serviceId);
 
         if (!masterId || !serviceId) {
             console.error('Ошибка: мастер или услуга не найдены.');
             return;
         }
 
-        const requestData = {
-            запись_id: isEdit ? undefined : nextRecordId.toString(),
-            клиент_имя: client,
-            клиент_телефон: phone,
-            клиент_email: '-',
-            мастер_id: masterId,
-            мастер_имя: master,
-            услуга_id: serviceId,
-            услуга_название: service,
-            дата_время: `${date} ${time}`,
-            статус: 'Подтверждена'
+        // Разделяем полное имя на имя и фамилию
+        const nameParts = client.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || firstName;
+
+        // Создаем объект клиента
+        const clientData = {
+            имя: firstName,
+            фамилия: lastName,
+            телефон: phone
         };
 
-
-        const response = await fetch('/api/appointments', {
+        // Сначала создаем или обновляем клиента
+        const clientResponse = await fetch('/api/clients', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(clientData)
+        });
+
+        if (!clientResponse.ok) {
+            const errorText = await clientResponse.text();
+            console.error('Ошибка при создании/обновлении клиента:', errorText);
+            throw new Error('Ошибка при создании/обновлении клиента');
+        }
+
+        const clientResult = await clientResponse.json();
+        const clientId = clientResult.клиент_id;
+
+        if (!clientId) {
+            throw new Error('Не удалось получить ID клиента');
+        }
+
+        // Получаем существующую запись, если это редактирование
+        let existingRecord = null;
+        if (isEdit) {
+            const response = await fetch('/api/appointments');
+            const data = await response.json();
+            existingRecord = data.appointments.find(record => {
+                const recordDateTime = record.дата_время;
+                const [recordDate, recordTimeFull] = recordDateTime.split(" ");
+                const recordTime = recordTimeFull.slice(0, 5);
+                const masterData = data.masters.find(m => m.мастер_id === record.мастер_id);
+                const recordMaster = masterData ? masterData.имя : '';
+                return recordMaster === master && recordTime === time && recordDate === date;
+            });
+        }
+
+        // Создаем объект записи
+        const requestData = {
+            клиент_id: clientId,
+            мастер_id: masterId,
+            услуга_id: serviceId,
+            дата_время: `${date} ${time}:00`,
+            статус: 'Подтверждена',
+            client_name: client,
+            client_phone: phone
+        };
+
+        // Добавляем запись_id только если это редактирование и запись найдена
+        if (isEdit && existingRecord) {
+            requestData.запись_id = existingRecord.запись_id;
+        } else {
+            requestData.запись_id = (await getNextRecordId()).toString();
+        }
+
+        // Формируем URL для запроса
+        const baseUrl = isEdit && existingRecord 
+            ? `/api/appointments/${existingRecord.запись_id}`
+            : '/api/admin/appointments'; // Используем новый маршрут для создания записей через админ-панель
+
+        const response = await fetch(baseUrl, {
+            method: isEdit && existingRecord ? 'PUT' : 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(requestData)
         });
 
+        const appointmentResponseText = await response.text();
 
         if (!response.ok) {
             throw new Error(`Ошибка при ${isEdit ? 'редактировании' : 'создании'} записи`);
         }
-
-        console.log('Запись успешно сохранена');
+        
+        // Обновляем отображение записей
         await loadRecords(date);
+        
+        // Закрываем модальное окно
+        closeClientModal();
     } catch (error) {
         console.error('Ошибка при сохранении записи:', error);
+        errorMessage.textContent = 'Ошибка при сохранении записи. Попробуйте еще раз.';
+        errorMessage.style.display = 'block';
     }
 }
 
-
-
-export async function loadRecords(date) {
-    try {
-        const response = await fetch('/api/appointments');
-        const data = await response.json();
-        const records = Array.isArray(data.appointments) ? data.appointments : [];
-        const dateToLoad = date || new Date().toISOString().split('T')[0];
-
-        document.querySelectorAll('.schedule-cell').forEach(cell => {
-            cell.textContent = '';
-        });
-
-        records.forEach(record => {
-            const recordDate = record.дата_время.split(" ")[0];
-            const recordTime = record.дата_время.split(" ")[1];
-
-            if (recordDate === dateToLoad) {
-                const cell = document.querySelector(
-                    `.schedule-cell[data-master="${record.мастер_имя}"][data-time="${recordTime}"]`
-                );
-                if (cell) {
-                    cell.textContent = `${record.клиент_имя} (${record.услуга_название})`;
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Ошибка при загрузке записей:', error);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => loadRecords());
 
 
 const serviceSelect = document.getElementById('serviceSelect');
@@ -500,12 +582,22 @@ async function deleteRecord(master, time, date) {
     try {
         // Найдем запись для удаления по мастеру, времени и дате
         const response = await fetch('/api/appointments');
-        const records = await response.json();
+        const data = await response.json();
+        
+        // Проверяем, что data.appointments существует и является массивом
+        if (!data.appointments || !Array.isArray(data.appointments)) {
+            throw new Error('Некорректные данные: отсутствует массив записей');
+        }
 
-        const recordToDelete = records.find(record => {
-            const recordDate = record.дата_время.split(" ")[0];
-            const recordTime = record.дата_время.split(" ")[1];
-            const recordMaster = record.мастер_имя;
+        const recordToDelete = data.appointments.find(record => {
+            const recordDateTime = record.дата_время;
+            const [recordDate, recordTimeFull] = recordDateTime.split(" ");
+            const recordTime = recordTimeFull.slice(0, 5);
+            
+            // Получаем имя мастера из связанных данных
+            const masterData = data.masters.find(m => m.мастер_id === record.мастер_id);
+            const recordMaster = masterData ? masterData.имя : '';
+            
             return recordMaster === master && recordTime === time && recordDate === date;
         });
 
@@ -521,6 +613,8 @@ async function deleteRecord(master, time, date) {
             } else {
                 throw new Error('Ошибка при удалении записи');
             }
+        } else {
+            console.error('Запись не найдена');
         }
     } catch (error) {
         console.error('Ошибка при удалении записи:', error);
@@ -531,24 +625,16 @@ async function deleteRecord(master, time, date) {
 
 
 async function handleCellClick(cell) {
-    console.log('Клик по ячейке:', cell);
-
     const cellDateTime = new Date(`${state.selectedDate}T${cell.dataset.time}`);
     const today = new Date();
     const maxDate = new Date();
     maxDate.setDate(today.getDate() + 30);
 
     if (cellDateTime < today || cellDateTime > maxDate) {
-        console.log('Выбранная дата вне допустимого диапазона');
         return;
     }
 
-    console.log('Запрос к API на получение записи...');
     const record = await getRecordForCell(cell.dataset.master, cell.dataset.time, state.selectedDate);
-
-    console.log('Полученная запись:', record);
-
-    // Открываем модальное окно независимо от наличия записи
     openClientModal(cell, record);
 }
 
@@ -563,37 +649,25 @@ let selectedCell = null;
 
 async function getRecordForCell(master, time, date) {
     try {
-        console.log('Запрос к API на получение записи...');
         const response = await fetch('/api/appointments');
         const data = await response.json();
-        console.log('Полученные данные:', data);
 
-        if (!Array.isArray(data.appointments) || !Array.isArray(data.masters)) {
-            throw new Error('Некорректные данные: отсутствует массив записей или мастеров');
+        if (!Array.isArray(data.appointments)) {
+            throw new Error('Некорректные данные: отсутствует массив записей');
         }
 
-        console.log('Поиск записи: мастер:', master, 'время:', time, 'дата:', date);
-
-        // Получаем массив мастеров
-        const masters = data.masters;
-
         const foundRecord = data.appointments.find(record => {
-            console.log('Проверяем запись:', record);
-
-            const recordDateTime = record.дата_время; // Например, "2025-02-27 10:30:00"
+            const recordDateTime = record.дата_время;
             const [recordDate, recordTimeFull] = recordDateTime.split(" ");
-            const recordTime = recordTimeFull.slice(0, 5); // Убираем секунды ("10:30:00" → "10:30")
+            const recordTime = recordTimeFull.slice(0, 5);
 
-            // Найти имя мастера по ID
-            const recordMasterObject = masters.find(m => m.мастер_id === record.мастер_id);
-            const recordMaster = recordMasterObject ? recordMasterObject.имя : 'Неизвестный мастер';
-
-            console.log(`Сравнение: мастер(${recordMaster} === ${master}), время(${recordTime} === ${time}), дата(${recordDate} === ${date})`);
+            // Получаем имя мастера из связанных данных
+            const masterData = data.masters.find(m => m.мастер_id === record.мастер_id);
+            const recordMaster = masterData ? masterData.имя : '';
 
             return recordMaster === master && recordTime === time && recordDate === date;
         });
 
-        console.log('Найденная запись:', foundRecord);
         return foundRecord;
     } catch (error) {
         console.error('Ошибка при получении записи:', error);
@@ -606,13 +680,16 @@ async function getRecordForCell(master, time, date) {
 
 
 async function openClientModal(cell, record = null) {
-    console.log('Открытие модального окна для ячейки:', cell);
-
     selectedCell = cell;
 
     // Очищаем поля перед открытием
     clientNameInput.value = '';
-    document.getElementById('clientPhoneInput').value = '';
+    const phoneInput = document.getElementById('clientPhoneInput');
+    phoneInput.value = '';
+    phoneInput.removeAttribute('readonly');
+    phoneInput.removeAttribute('disabled');
+    phoneInput.style.backgroundColor = '';
+    phoneInput.style.cursor = '';
     serviceSelect.value = '';
     otherServiceContainer.style.display = 'none';
     otherServiceInput.value = '';
@@ -648,9 +725,10 @@ async function openClientModal(cell, record = null) {
         populateServiceSelect(selectedMaster.специализация);
 
         if (record) {
-            console.log('Заполняем данные найденной записи...');
+            // Получаем данные клиента
             const clientResponse = await fetch(`/api/clients/${record.клиент_id}`);
-            const client = await clientResponse.json();
+            const clientData = await clientResponse.json();
+            const client = clientData.client || clientData;
 
             const clientName = client ? `${client.имя} ${client.фамилия}` : '';
             const clientPhone = client ? client.телефон : '';
@@ -659,21 +737,28 @@ async function openClientModal(cell, record = null) {
             const service = services.find(s => s.услуга_id === record.услуга_id);
             const serviceName = service ? service.название : '';
 
+            // Заполняем поля формы
             clientNameInput.value = clientName;
-            document.getElementById('clientPhoneInput').value = clientPhone;
+            phoneInput.value = clientPhone;
+            phoneInput.setAttribute('readonly', true);
+            phoneInput.setAttribute('disabled', true);
+            phoneInput.style.backgroundColor = '#f5f5f5';
+            phoneInput.style.cursor = 'not-allowed';
             serviceSelect.value = service ? service.услуга_id : '';
 
+            // Обновляем статус и детали записи
             updateStatusStyles(record.статус);
-
             document.getElementById('recordStatus').textContent = record.статус || 'Неизвестно';
             document.getElementById('recordId').textContent = record.запись_id || '-';
             document.getElementById('recordDetails').style.display = 'block';
 
+            // Показываем кнопку удаления
             deleteClientButton.style.display = 'inline-block';
         } else {
-            console.log('Запись отсутствует. Открываем пустое модальное окно.');
             document.getElementById('recordDetails').style.display = 'none';
             document.getElementById('recordStatus').textContent = 'Новая запись';
+            phoneInput.style.backgroundColor = '';
+            phoneInput.style.cursor = '';
         }
 
         clientModal.style.display = 'flex';
@@ -712,7 +797,7 @@ function updateStatusStyles(status) {
     }
 }
 
-saveClientButton.addEventListener('click', () => {
+saveClientButton.addEventListener('click', async () => {
     const clientName = clientNameInput.value.trim();
     const clientPhone = document.getElementById('clientPhoneInput').value.trim();
     const selectedService = serviceSelect.value === 'other' ? otherServiceInput.value.trim() : serviceSelect.options[serviceSelect.selectedIndex].text;
@@ -732,7 +817,9 @@ saveClientButton.addEventListener('click', () => {
             return;
         }
 
-        const isEdit = !!getRecordForCell(masterName, time);
+        // Проверяем наличие существующей записи
+        const existingRecord = await getRecordForCell(masterName, time, state.selectedDate);
+        const isEdit = !!existingRecord;
 
         saveRecord(masterName, time, clientName, clientPhone, selectedService, state.selectedDate, isEdit);
 
@@ -772,7 +859,6 @@ window.loadRecords = loadRecords;
 document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const todayString = today.toISOString().split('T')[0];
-
 
     loadRecords(todayString);
 });

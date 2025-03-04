@@ -122,6 +122,18 @@ export function initRecords() {
     function attachEventHandlers() {
         recordsTableBody.addEventListener('click', handleRecordTableClick);
         newRecordsTableBody.addEventListener('click', handleNewRecordTableClick);
+        document.querySelectorAll('.record-button--delete').forEach(button => {
+            button.addEventListener('click', async function() {
+                const row = this.closest('tr');
+                const recordId = row.querySelector('td').textContent;
+                try {
+                    await deleteRecord(recordId);
+                    row.remove();
+                } catch (error) {
+                    console.error('Ошибка удаления записи:', error);
+                }
+            });
+        });
     }
 
     // Обработка кликов по таблице записей
@@ -316,6 +328,9 @@ export function initRecords() {
     }
 
     // Инициализация записей
-    initializeRecords();
-    attachEventHandlers();
+    initializeRecords().then(() => {
+        attachEventHandlers();
+    }).catch(error => {
+        console.error('Ошибка при загрузке записей:', error);
+    });
 }

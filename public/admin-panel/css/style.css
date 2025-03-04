@@ -428,10 +428,6 @@ body {
     background-color: #a7dfbf;
 }
 
-.schedule-records-table td:hover {
-    cursor: pointer;
-    background-color: #ebebeb;
-}
 
 .schedule-records-table td.time-cell:not(:empty):hover {
     background-color: #f3f3f3;
@@ -636,11 +632,31 @@ button {
 }
 
 
-.schedule-cell.disabled-cell {
-    background-color: #bdbdbd; 
-    pointer-events: none;      
+.schedule-cell {
+    font-family: 'Montserrat';
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    min-height: 40px;
 }
 
+.schedule-cell:hover {
+    background-color: #f5f5f5;
+}
+
+.schedule-cell.has-record {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.schedule-cell.disabled-cell {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    color: #727272;
+}
 
 .schedule-cell.disabled-cell.has-record {   
     cursor: pointer;   
@@ -750,4 +766,50 @@ button {
         transform: scale(0.9);
     }
 
+}
+
+.schedule-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.schedule-input:focus {
+    border-color: #4a90e2;
+    outline: none;
+}
+
+.flatpickr-calendar {
+    font-family: 'Work Sans', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.flatpickr-day.selected {
+    background: #4a90e2;
+    border-color: #4a90e2;
+}
+
+.flatpickr-day.selected:hover {
+    background: #357abd;
+    border-color: #357abd;
+}
+
+.flatpickr-time input {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 0 8px;
+}
+
+.flatpickr-time {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-top: 1px solid #eee;
+    margin-top: 8px;
 }

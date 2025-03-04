@@ -1,10 +1,25 @@
 export function initAdmins() {
+    // Проверяем, является ли пользователь суперадмином
+    const isSuperadmin = document.querySelector('#adminTab') !== null;
+    
+    // Если пользователь не суперадмин, не инициализируем функционал
+    if (!isSuperadmin) {
+        return;
+    }
+
     const adminsTableBody = document.getElementById('adminsTableBody');
     const addAdminButton = document.getElementById('addAdminButton');
     const addAdminModal = document.getElementById('addAdminModal');
     const closeAddAdminModal = document.getElementById('closeAddAdminModal');
     const adminSettingsModal = document.getElementById('adminSettingsModal');
     const closeAdminModal = document.getElementById('closeAdminModal');
+
+    // Проверяем наличие всех необходимых элементов
+    if (!adminsTableBody || !addAdminButton || !addAdminModal || !closeAddAdminModal || 
+        !adminSettingsModal || !closeAdminModal) {
+        console.log('Элементы управления администраторами не найдены');
+        return;
+    }
 
     let currentAdminRow;
 
@@ -73,7 +88,7 @@ export function initAdmins() {
             });
             attachEventHandlers();
         }).catch(error => {
-            alert('Ошибка при загрузке администраторов: ' + error.message);
+            console.error('Ошибка при загрузке администраторов:', error);
         });
     }
 
@@ -86,7 +101,7 @@ export function initAdmins() {
                     await deleteAdminFromDatabase(adminId);
                     row.remove();
                 } catch (error) {
-                    alert('Ошибка удаления администратора: ' + error.message);
+                    console.error('Ошибка удаления администратора:', error);
                 }
             });
         });
@@ -141,7 +156,7 @@ export function initAdmins() {
         const newAdminPassword = document.getElementById('newAdminPassword').value.trim();
 
         if (!newAdminName || !newAdminLogin || !newAdminPassword) {
-            alert('Пожалуйста, заполните все поля.');
+            console.error('Пожалуйста, заполните все поля.');
             return;
         }
 

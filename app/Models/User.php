@@ -16,6 +16,14 @@ class User extends Authenticatable
 
     protected $guarded = ['id'];
 
+    protected $fillable = [
+        'name',
+        'last_name',
+        'phone',
+        'email',
+        'password'
+    ];
+
     public function password():Attribute
     {
         return new Attribute(

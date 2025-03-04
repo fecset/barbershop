@@ -21,9 +21,8 @@ Route::post('/admin-panel/login', [LoginAdminController::class, 'loginPost']);
 Route::post('/admin-panel/logout', function () {
     auth('superadmin')->logout();
     auth('admin')->logout();
-
     return redirect()->route('admin.login');
-})->name('admin.logout');
+})->name('admin.logout')->middleware(['auth:admin,superadmin']);
 
 
 Route::get('/', function () {

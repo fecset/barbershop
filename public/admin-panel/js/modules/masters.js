@@ -85,7 +85,7 @@ export function initMasters() {
             });
             attachEventHandlers();
         }).catch(error => {
-            alert('Ошибка при загрузке мастеров: ' + error.message);
+            console.error('Ошибка при загрузке мастеров:', error);
         });
     }
 
@@ -101,7 +101,7 @@ export function initMasters() {
                     await deleteMasterFromDatabase(masterId);
                     row.remove();
                 } catch (error) {
-                    alert('Ошибка удаления мастера: ' + error.message);
+                    console.error('Ошибка удаления мастера:', error);
                 }
             });
         });
@@ -152,7 +152,7 @@ export function initMasters() {
                 await updateMasterInDatabase(updatedMaster);
                 masterSettingsModal.style.display = 'none';
             } catch (error) {
-                alert('Ошибка обновления данных: ' + error.message);
+                console.error('Ошибка обновления данных:', error);
             }
         }
     });
@@ -177,7 +177,7 @@ export function initMasters() {
         const newMasterSchedule = document.getElementById('newMasterSchedule').value.trim();
 
         if (!newMasterName || !newMasterSpecialization || !newMasterSchedule) {
-            alert("Пожалуйста, заполните все поля.");
+            console.error('Пожалуйста, заполните все поля.');
             return;
         }
 
@@ -214,9 +214,6 @@ export function initMasters() {
             alert('Ошибка сохранения данных: ' + error.message);
         }
     });
-
-
-
 
     // Загрузка мастеров при инициализации страницы
     populateMasters();

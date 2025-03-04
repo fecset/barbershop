@@ -8,7 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Appointment extends Model
 {
     protected $table = 'appointments';
-    protected $fillable = ['клиент_id', 'мастер_id', 'услуга_id', 'дата_время', 'статус'];
+    protected $fillable = [
+        'запись_id',
+        'клиент_id',
+        'мастер_id',
+        'услуга_id',
+        'дата_время',
+        'статус'
+    ];
     public $timestamps = true;
     protected $primaryKey = 'запись_id';
     

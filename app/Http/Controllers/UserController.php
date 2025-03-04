@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Appointment; 
 
@@ -13,8 +14,11 @@ class UserController extends Controller
 {
     public function profile()
     {
-        $appointments = Appointment::where('клиент_id', auth()->id())->get();
-
+        $client = \App\Models\Client::where('email', Auth::user()->email)->first();
+        if (!$client) {
+            return view('profile', ['appointments' => []]);
+        }
+        $appointments = Appointment::where('клиент_id', $client->клиент_id)->get();
         return view('profile', compact('appointments'));
     }
 
@@ -25,14 +29,20 @@ class UserController extends Controller
 
     public function registerPost(RegisterRequest $request)
     {
-        $user = User::create($request->validated());
+        $user = User::create([
+            'name' => $request->name,
+            'last_name' => $request->last_name,
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'password' => $request->password
+        ]);
 
         \App\Models\Client::create([
-            'клиент_id' => $user->id, 
-            'имя' => $user->name,  
-            'фамилия' => $request->last_name, 
-            'email' => $user->email,
-            'телефон' => $request->phone, 
+            'клиент_id' => $user->id,
+            'имя' => $user->name,
+            'фамилия' => $user->last_name,
+            'телефон' => $user->phone,
+            'email' => $user->email
         ]);
 
         return redirect()->route('login');
@@ -45,10 +55,15 @@ class UserController extends Controller
 
     public function loginPost(LoginRequest $request)
     {
-        if(auth()->attempt($request->validated())){
-            return redirect()->route('profile');
+        try {
+            if(auth()->attempt(['phone' => $request->phone, 'password' => $request->password])){
+                return redirect()->route('profile');
+            }
+            return redirect()->route('login', ['auth' => false]);
+        } catch (\Exception $e) {
+            \Log::error('Ошибка авторизации: ' . $e->getMessage());
+            return redirect()->route('login', ['auth' => false]);
         }
-        return redirect()->route('login', ['auth' => false]);
     }
 
 

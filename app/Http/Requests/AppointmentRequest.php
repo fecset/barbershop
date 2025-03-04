@@ -11,7 +11,7 @@ class AppointmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Разрешаем выполнение запроса
+        return true;
     }
 
     /**
@@ -22,12 +22,9 @@ class AppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|min:2|max:30',
-            'email' => 'required|email',
-            'phone' => ['required', 'regex:/^\+7\s?\(\d{3}\)\s?\d{3}-\d{2}-\d{2}$/'],
-            'услуга_id' => 'required|exists:services,услуга_id',
             'мастер_id' => 'required|exists:masters,мастер_id',
-            'дата_время' => 'required|date_format:Y-m-d H:i',
+            'услуга_id' => 'required|exists:services,услуга_id',
+            'дата_время' => 'required|date'
         ];
     }
 
@@ -36,16 +33,15 @@ class AppointmentRequest extends FormRequest
      *
      * @return array<string, string>
      */
-    public function messages()
+    public function messages(): array
     {
         return [
-            'required' => 'Это поле обязательно для заполнения.',
-            'email' => 'Укажите корректный адрес электронной почты.',
-            'min' => 'Минимальное количество символов :min.',
-            'max' => 'Максимальное количество символов :max.',
-            'exists' => 'Выбранная :attribute не существует.',
-            'date_format' => 'Неверный формат даты и времени. Используйте формат "ГГГГ-ММ-ДД ЧЧ:ММ".',
-            'phone.regex' => 'Номер телефона должен быть в формате +7 (XXX) XXX-XX-XX',
+            'мастер_id.required' => 'Пожалуйста, выберите мастера',
+            'мастер_id.exists' => 'Выбранный мастер не существует',
+            'услуга_id.required' => 'Пожалуйста, выберите услугу',
+            'услуга_id.exists' => 'Выбранная услуга не существует',
+            'дата_время.required' => 'Пожалуйста, выберите дату и время',
+            'дата_время.date' => 'Неверный формат даты и времени'
         ];
     }
 }

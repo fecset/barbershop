@@ -51,11 +51,11 @@
         @csrf
         @include('components.input', ['attributeName' => 'name', 'attributeType' => 'text', 'attributeTitle' => 'Имя'])
         @include('components.input', ['attributeName' => 'last_name', 'attributeType' => 'text', 'attributeTitle' => 'Фамилия'])
-        @include('components.input', ['attributeName' => 'email', 'attributeType' => 'email', 'attributeTitle' => 'E-mail'])
-        @include('components.input', ['attributeName' => 'phone', 'attributeType' => 'text', 'attributeTitle' => 'Телефон'])
+        @include('components.input', ['attributeName' => 'phone', 'attributeType' => 'tel', 'attributeTitle' => 'Телефон', 'attributePattern' => '[0-9]{11}', 'attributePlaceholder' => 'Например: 79251234567'])
+        @include('components.input', ['attributeName' => 'email', 'attributeType' => 'email', 'attributeTitle' => 'E-mail (необязательно)'])
         @include('components.input', ['attributeName' => 'password', 'attributeType' => 'password', 'attributeTitle' => 'Пароль'])
 
-        <button type="submit" class="submit-button">Зарегестрироваться</button>
+        <button type="submit" class="submit-button">Зарегистрироваться</button>
     </form>
 </div>
 

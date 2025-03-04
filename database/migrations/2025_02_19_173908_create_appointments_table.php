@@ -9,7 +9,7 @@ class CreateAppointmentsTable extends Migration
     public function up()
     {
         Schema::create('appointments', function (Blueprint $table) {
-            $table->bigIncrements('запись_id');
+            $table->string('запись_id')->primary();
 
             // Указываем тип поля и явно связываем его с колонкой 'клиент_id' в таблице 'clients'
             $table->unsignedBigInteger('клиент_id');

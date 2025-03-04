@@ -1,5 +1,5 @@
 import { loadRecords, state } from './main.js';
-import { generateScheduleBody } from './main.js';
+import { generateScheduleBody, generateScheduleHeader } from './main.js';
 
 let calA = new Calendar({
     id: "#calendar-a",
@@ -12,23 +12,33 @@ let calA = new Calendar({
     layoutModifiers: ["month-left-align"],
     eventsData: [],
 
-    dateChanged: (currentDate, events) => {
+    dateChanged: async (currentDate, events) => {
         if (currentDate instanceof Date && !isNaN(currentDate)) {
             state.selectedDate = new Date(currentDate.getTime() - currentDate.getTimezoneOffset() * 60000)
                 .toISOString()
                 .split('T')[0]; 
   
-            document.getElementById('scheduleBody').innerHTML = '';  
+            // Очищаем таблицу
+            const scheduleBody = document.getElementById('scheduleBody');
+            const mastersRow = document.getElementById('mastersRow');
+            scheduleBody.innerHTML = '';
+            mastersRow.innerHTML = '';
 
-            
-            const masters = JSON.parse(localStorage.getItem('masters')) || [];
-            const filteredMasters = masters.filter(master => master.специализация !== 'Уборка');
-            
-            
-            generateScheduleBody(filteredMasters);
-
-            
-            loadRecords(state.selectedDate); 
+            try {
+                // Получаем актуальный список мастеров
+                const response = await fetch('/api/masters');
+                const masters = await response.json();
+                const filteredMasters = masters.filter(master => master.специализация !== 'Уборка');
+                
+                // Пересоздаем заголовки и тело таблицы
+                generateScheduleHeader(filteredMasters);
+                generateScheduleBody(filteredMasters);
+                
+                // Загружаем записи для новой даты
+                await loadRecords(state.selectedDate);
+            } catch (error) {
+                console.error('Ошибка при обновлении расписания:', error);
+            }
         } else {
             console.error("Invalid date value:", currentDate);
         }

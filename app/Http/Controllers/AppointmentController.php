@@ -13,7 +13,11 @@ class AppointmentController extends Controller
 {
     public function index()
     {
-        $appointments = Appointment::where('клиент_id', Auth::id())->get();
+        $client = \App\Models\Client::where('email', Auth::user()->email)->first();
+        if (!$client) {
+            return view('appointments.index', ['appointments' => []]);
+        }
+        $appointments = Appointment::where('клиент_id', $client->клиент_id)->get();
         return view('appointments.index', compact('appointments'));
     }
 
@@ -54,19 +58,29 @@ class AppointmentController extends Controller
 
     public function store(AppointmentRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'phone' => 'required|string|max:20',
-            'услуга_id' => 'required|exists:services,услуга_id',
-            'мастер_id' => 'required|exists:masters,мастер_id',
-            'дата_время' => 'required|date|after:today',
-        ]);
-        $validated['клиент_id'] = Auth::id();
-        $validated['статус'] = 'Ожидает подтверждения';
-        Appointment::create($validated);
+        try {
+            // Генерируем ID записи
+            $lastAppointment = Appointment::orderBy('запись_id', 'desc')->first();
+            $nextId = $lastAppointment ? intval($lastAppointment->запись_id) + 1 : 1;
+            
+            // Получаем ID клиента из таблицы clients по email пользователя
+            $client = \App\Models\Client::where('email', Auth::user()->email)->first();
+            if (!$client) {
+                throw new \Exception('Клиент не найден');
+            }
+            
+            $validated = $request->validated();
+            $validated['клиент_id'] = $client->клиент_id;
+            $validated['запись_id'] = $nextId;
+            $validated['статус'] = 'Ожидает подтверждения';
+            
+            $appointment = Appointment::create($validated);
 
-        return redirect()->route('profile')->with('success', 'Запись успешно создана.');
+            return redirect()->route('profile')->with('success', 'Запись успешно создана!');
+        } catch (\Exception $e) {
+            \Log::error('Ошибка при создании записи: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Ошибка при создании записи: ' . $e->getMessage());
+        }
     }
 
     public function destroy($запись_id)
@@ -141,14 +155,19 @@ class AppointmentController extends Controller
         }
 
         $request->validate([
-            'клиент_id' => 'required|integer|exists:clients,клиент_id',
             'мастер_id' => 'required|integer|exists:masters,мастер_id',
             'услуга_id' => 'required|integer|exists:services,услуга_id',
             'дата_время' => 'required|date_format:Y-m-d H:i:s',
             'статус' => 'required|string'
         ]);
 
-        $appointment->update($request->all());
+        // Обновляем только необходимые поля
+        $appointment->мастер_id = $request->мастер_id;
+        $appointment->услуга_id = $request->услуга_id;
+        $appointment->дата_время = $request->дата_время;
+        $appointment->статус = $request->статус;
+        
+        $appointment->save();
 
         return response()->json(['message' => 'Запись обновлена', 'appointment' => $appointment]);
     }

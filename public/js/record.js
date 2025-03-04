@@ -1,57 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const phoneInput = document.getElementById('phone');
-
-
-    phoneInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        let formattedValue = '';
-
-        if (value.length > 0) {
-            formattedValue += '+7 ';
-        }
-
-        if (value.length > 1) {
-            formattedValue += '(' + value.slice(1, 4);
-        }
-
-        if (value.length >= 4) {
-            formattedValue += ') ' + value.slice(4, 7);
-        }
-
-        if (value.length >= 7) {
-            formattedValue += '-' + value.slice(7, 9);
-        }
-
-        if (value.length >= 9) {
-            formattedValue += '-' + value.slice(9, 11);
-        }
-
-        e.target.value = formattedValue; 
-
-        
-        if (value.length < 7) {
-            e.target.value = e.target.value.replace(/-\d{2}-\d{2}$/, '');
-        }
-        if (value.length < 4) {
-            e.target.value = e.target.value.replace(/\(\d{3}\)$/, '');
-        }
-
-        
-        const regex = /^\+7\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/;
-        const isValid = regex.test(formattedValue);
-
-        
-        if (!isValid) {
-            e.target.classList.add('is-invalid');
-        } else {
-            e.target.classList.remove('is-invalid');
-        }
-    });
-
-
     let calendar;
     let masterSchedule = {};
-
     
     function initializeCalendar() {
         if (calendar) {
@@ -81,10 +30,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    
     initializeCalendar();
 
-    
     function fetchMasterSchedule(masterId) {
         fetch(`/api/master-schedule/${masterId}`)
             .then(response => response.json())
@@ -97,7 +44,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 masterSchedule = data[0]; 
                 updateCalendarForMaster();
 
-                
                 if (calendar.selectedDates.length > 0) {
                     updateAvailableTimes(calendar.selectedDates[0]);
                 }
@@ -107,7 +53,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    
     function updateCalendarForMaster() {
         if (!masterSchedule.days) return;
 
@@ -148,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    
     function updateAvailableTimes(selectedDate) {
         if (!selectedDate || !masterSchedule || !masterSchedule.days) {
             return;
@@ -160,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function () {
         calendar.config.maxTime = `${endHour}:00`;   
     }
 
-    
     document.getElementById('master').addEventListener('change', function (event) {
         const masterId = event.target.value;
         if (masterId) {
@@ -180,7 +123,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
-
 
 document.addEventListener('DOMContentLoaded', function(){
     var serviceSelect = document.getElementById('service');

@@ -22,15 +22,18 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required',
-            'password' => 'required',
+            'phone' => ['required', 'string', 'size:11', 'regex:/^[0-9]+$/'],
+            'password' => ['required', 'string'],
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
-        return parent::messages() + [
-                'required' => 'Данное поле обязательно для заполнения'
-            ];
+        return [
+            'phone.required' => 'Пожалуйста, введите номер телефона',
+            'phone.size' => 'Номер телефона должен содержать 11 цифр',
+            'phone.regex' => 'Номер телефона должен содержать только цифры',
+            'password.required' => 'Пожалуйста, введите пароль',
+        ];
     }
 }

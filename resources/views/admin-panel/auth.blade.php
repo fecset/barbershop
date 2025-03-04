@@ -56,7 +56,7 @@
             <div id="validationPassword" class="invalid-feedback">
                 {{  $message }}
             </div>
-            @enderror
+            @enderror*
 
 
             <button type="submit" class="auth_button">Авторизоваться</button>

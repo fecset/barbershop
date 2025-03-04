@@ -12,7 +12,7 @@ class CreateClientsTable extends Migration
             $table->string('имя');
             $table->string('фамилия');
             $table->string('телефон');
-            $table->string('email');
+            $table->string('email')->nullable();
             $table->timestamps();
         });
     }

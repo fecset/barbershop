@@ -48,40 +48,24 @@
     </div>
     <p>Мерзляковский пер., 10, Москва</p>
 
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <form action="{{ route('appointments.store') }}" method="POST">
         @csrf
-
-        <div class="form-group">
-            <label for="name">Имя</label>
-            <input type="text" id="name" name="name" value="{{ old('name', auth()->user()->name ?? '') }}" placeholder="Введите ваше имя" class="form-control @error('name') is-invalid @enderror">
-            @error('name')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
-            @enderror
-        </div>
-
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="{{ old('email', auth()->user()->email ?? '') }}" placeholder="Введите ваш адрес электронной почты" class="form-control @error('email') is-invalid @enderror">
-            @error('email')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
-            @enderror
-        </div>
-
-        <div class="form-group">
-            <label for="phone">Телефон</label>
-            <input type="tel" id="phone" name="phone" placeholder="Введите ваш номер телефона"
-                   class="form-control @error('phone') is-invalid @enderror"
-                   value="{{ old('phone') }}">
-            @error('phone')
-            <div class="invalid-feedback">
-                {{ $message }}
-            </div>
-            @enderror
-        </div>
+        <input type="hidden" name="статус" value="Ожидает подтверждения">
+        <input type="hidden" name="name" value="{{ auth()->user()->name }}">
+        <input type="hidden" name="email" value="{{ auth()->user()->email }}">
+        <input type="hidden" name="phone" value="{{ auth()->user()->phone }}">
 
         <div class="form-group">
             <label for="service">Выберите услугу</label>
